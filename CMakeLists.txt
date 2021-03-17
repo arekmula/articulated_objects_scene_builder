@@ -10,6 +10,8 @@ project(model_builder)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  pcl_conversions
+  pcl_ros
 )
 
 ## System dependencies are found with CMake's conventions

@@ -2,31 +2,41 @@
 #include "std_msgs/String.h"
 #include <sstream>
 
+// PCL specific includes
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+ros::Publisher g_test_point_pub;
+
+void pointCallback(const sensor_msgs::PointCloud2ConstPtr& input_point_cloud)
+{
+    sensor_msgs::PointCloud2 output_point_cloud;
+    output_point_cloud = *input_point_cloud;
+    g_test_point_pub.publish(output_point_cloud);
+}
+
 int main(int argc, char **argv)
 {
+    // Initialize ROS
+    ros::init(argc, argv, "model_builder");
+    ros::NodeHandle n;
 
-  ros::init(argc, argv, "talker");
-  ros::NodeHandle n;
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
-  ros::Rate loop_rate(10);
+    // Create a ROS publisher for the output point cloud
+    g_test_point_pub = n.advertise<sensor_msgs::PointCloud2>("test_point_cloud", 1000);
 
-  int count = 0;
-  while (ros::ok())
-  {
-    std_msgs::String msg;
+    // ROS subscriber for the input point cloud
+    ros::Subscriber point_cloud_sub = n.subscribe("/hz_points", 1, pointCallback);
 
-    std::stringstream ss;
-    ss << "hello world " << count;
-    msg.data = ss.str();
-    ROS_INFO("%s", msg.data.c_str());
+    ros::Rate loop_rate(10);
 
-    chatter_pub.publish(msg);
-
-    ros::spinOnce();
-    loop_rate.sleep();
-    ++count;
-  }
+    while (ros::ok())
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
 
 
-  return 0;
+    return 0;
 }
