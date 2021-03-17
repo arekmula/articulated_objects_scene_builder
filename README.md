@@ -1,0 +1,1 @@
+# articulated_objects_scene_builder
