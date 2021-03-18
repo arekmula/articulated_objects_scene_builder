@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   pcl_conversions
   pcl_ros
+  detection_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,8 +107,9 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES model_builder
-#  CATKIN_DEPENDS roscpp std_msgs
+   CATKIN_DEPENDS detection_msgs
 #  DEPENDS system_lib
+
 )
 
 ###########

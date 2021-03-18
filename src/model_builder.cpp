@@ -34,4 +34,9 @@ namespace model_builder{
         processed_point_cloud_pub.publish(output_point_cloud);
     }
 
+    void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
+    {
+        std::cout << "Received prediction!" << std::endl;
+    }
+
 }

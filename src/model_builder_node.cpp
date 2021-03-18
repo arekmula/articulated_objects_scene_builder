@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     ros::Subscriber point_cloud_sub = n.subscribe("/hz_points", 1, &model_builder::ModelBuilder::pointCloudCallback, &modelBuilder);
 
     // ROS subscriber for the front prediction
-    // ros::Subscriber front_prediction_sub = n.subscribe("front_prediction_topic", 1, frontPredictionTopic);
+    ros::Subscriber front_prediction_sub = n.subscribe("/front_prediction", 1, &model_builder::ModelBuilder::frontPredictionCallback, &modelBuilder);
     ros::Rate loop_rate(10);
 
     while (ros::ok())
