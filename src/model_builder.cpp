@@ -19,24 +19,51 @@ namespace model_builder{
 
     void ModelBuilder::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr &input_point_cloud)
     {
-        // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
-        pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud;
-        pcl::fromROSMsg(*input_point_cloud, pcl_cloud);
+        if (ModelBuilder::isAllPredictionsReady())
+        {
+            // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
+            pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud;
+            pcl::fromROSMsg(*input_point_cloud, pcl_cloud);
 
-        // Get RGB image from PointCloud and publish it so other nodes can generate predictions
-        sensor_msgs::Image rgb_image;
-        pcl::toROSMsg(pcl_cloud, rgb_image);
-        image_from_pcl_pub.publish(rgb_image);
+            // Get RGB image from PointCloud and publish it so other nodes can generate predictions
+            sensor_msgs::Image rgb_image;
+            pcl::toROSMsg(pcl_cloud, rgb_image);
+            image_from_pcl_pub.publish(rgb_image);
 
-        // Publish current processed point cloud
-        sensor_msgs::PointCloud2 output_point_cloud;
-        output_point_cloud = *input_point_cloud;
-        processed_point_cloud_pub.publish(output_point_cloud);
+            // Publish current processed point cloud
+            sensor_msgs::PointCloud2 output_point_cloud;
+            output_point_cloud = *input_point_cloud;
+            processed_point_cloud_pub.publish(output_point_cloud);
+
+            // Set flags for waiting until all predictions on current point cloud will be processed
+            ModelBuilder::setWaitForPredictionsFlags();
+        }
+        else
+        {
+            std::cout << "Waiting for all predictions on previous point cloud!" << std::endl;
+        }
     }
 
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
     {
-        std::cout << "Received prediction!" << std::endl;
+        is_waiting_for_front_prediction = false;
+        std::cout << "Received front prediction!" << std::endl;
     }
 
+
+    void ModelBuilder::setWaitForPredictionsFlags()
+    {
+        is_waiting_for_front_prediction = true;
+        // Currently not used
+        //is_waiting_for_handler_prediction = true;
+        //is_waiting_for_joint_prediction = true;
+    }
+
+    bool ModelBuilder::isAllPredictionsReady()
+    {
+        if (!is_waiting_for_front_prediction && !is_waiting_for_handler_prediction && !is_waiting_for_joint_prediction)
+            return true;
+        else
+            return false;
+    }
 }

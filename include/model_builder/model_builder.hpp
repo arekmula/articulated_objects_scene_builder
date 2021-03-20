@@ -37,6 +37,25 @@ public:
 private:
     ros::Publisher processed_point_cloud_pub;
     ros::Publisher image_from_pcl_pub;
+
+    /**
+     * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
+     */
+    bool is_waiting_for_front_prediction = false;
+    bool is_waiting_for_handler_prediction = false;
+    bool is_waiting_for_joint_prediction = false;
+
+    /**
+     * @brief setWaitForPredictionsFlags - sets all wait predictions flags to true.
+     */
+    void setWaitForPredictionsFlags();
+
+    /**
+     * @brief isAllPredictionsProcessed - checks if all predictions are ready
+     * @return
+     */
+    bool isAllPredictionsReady();
+
 };
 
 }
