@@ -54,6 +54,7 @@ namespace model_builder{
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_processed_cloud);
+        front_prediction.processPrediction();
 
     }
 
@@ -79,14 +80,15 @@ namespace model_builder{
                                      std::vector<int32_t> in_class_ids,
                                      std::vector<std::string> in_class_names,
                                      std::vector<float_t> in_scores,
-                                     std::vector<sensor_msgs::Image> in_masks
-                                     , pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
+                                     std::vector<sensor_msgs::Image> in_masks,
+                                     pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
     {
         boxes = in_boxes;
         class_ids = in_class_ids;
         class_names = in_class_names;
         scores = in_scores;
         masks = in_masks;
+        cloud = in_cloud;
 
         std::cout << "Number of front predictions: " << boxes.size() << std::endl;
     }
@@ -98,6 +100,43 @@ namespace model_builder{
 
     void FrontPrediction::processPrediction()
     {
+        for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
+        {
+
+            // Get bottom left vertices from ROI
+            int x_bottom_left_vertice = it->x_offset;
+            int y_bottom_left_vertice = it->y_offset;
+
+            // Get top right vertices from ROI
+            int x_top_right_vertice = it->x_offset + it->width;
+            int y_top_right_vertice = it->y_offset + it->height;
+
+            // Create list of x vertices
+            pcl::Vertices x_box_vertices;
+            x_box_vertices.vertices.push_back(x_bottom_left_vertice);
+            x_box_vertices.vertices.push_back(x_top_right_vertice);
+
+            // Create list of y vertices
+            pcl::Vertices y_box_vertices;
+            y_box_vertices.vertices.push_back(y_bottom_left_vertice);
+            y_box_vertices.vertices.push_back(y_top_right_vertice);
+
+            std::cout << "Bottom left: " << x_bottom_left_vertice << ", " << y_bottom_left_vertice << std::endl;
+            std::cout << "Top right: " << x_top_right_vertice<< ", " << y_top_right_vertice << std::endl;
+
+            std::vector<pcl::Vertices> box_vertices{x_box_vertices, y_box_vertices};
+
+            pcl::CropHull<pcl::PointXYZRGB> cropFrontHull;
+            // Set x,y vertices as hull indices
+            cropFrontHull.setHullIndices(box_vertices);
+            // Set cloud for CropHull class
+            cropFrontHull.setHullCloud(cloud.makeShared());
+            std::cout << cropFrontHull.getHullCloud()->size() << std::endl;
+
+            pcl::PointCloud<pcl::PointXYZRGB> out_pointcloud;
+            cropFrontHull.filter(out_pointcloud);
+            std::cout << out_pointcloud.size() << std::endl;
+        }
 
     }
 }
