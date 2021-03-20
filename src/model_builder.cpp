@@ -22,12 +22,11 @@ namespace model_builder{
         if (ModelBuilder::isAllPredictionsReady())
         {
             // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
-            pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud;
-            pcl::fromROSMsg(*input_point_cloud, pcl_cloud);
+            pcl::fromROSMsg(*input_point_cloud, pcl_processed_cloud);
 
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
             sensor_msgs::Image rgb_image;
-            pcl::toROSMsg(pcl_cloud, rgb_image);
+            pcl::toROSMsg(pcl_processed_cloud, rgb_image);
             image_from_pcl_pub.publish(rgb_image);
 
             // Publish current processed point cloud
@@ -53,7 +52,9 @@ namespace model_builder{
                                          front_detection->class_ids,
                                          front_detection->class_names,
                                          front_detection->scores,
-                                         front_detection->masks);
+                                         front_detection->masks,
+                                         pcl_processed_cloud);
+
     }
 
 
@@ -79,7 +80,7 @@ namespace model_builder{
                                      std::vector<std::string> in_class_names,
                                      std::vector<float_t> in_scores,
                                      std::vector<sensor_msgs::Image> in_masks
-                                     )
+                                     , pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
     {
         boxes = in_boxes;
         class_ids = in_class_ids;
@@ -87,10 +88,15 @@ namespace model_builder{
         scores = in_scores;
         masks = in_masks;
 
-        std::cout << "Number of front predictions!" << boxes.size() << std::endl;
+        std::cout << "Number of front predictions: " << boxes.size() << std::endl;
     }
 
     FrontPrediction::~FrontPrediction()
+    {
+
+    }
+
+    void FrontPrediction::processPrediction()
     {
 
     }

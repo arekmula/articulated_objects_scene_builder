@@ -37,6 +37,7 @@ public:
 private:
     ros::Publisher processed_point_cloud_pub;
     ros::Publisher image_from_pcl_pub;
+    pcl::PointCloud<pcl::PointXYZRGB> pcl_processed_cloud;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
@@ -68,12 +69,18 @@ public:
                     std::vector<int32_t> in_class_ids,
                     std::vector<std::string> in_class_names,
                     std::vector<float_t> in_scores,
-                    std::vector<sensor_msgs::Image> in_masks);
+                    std::vector<sensor_msgs::Image> in_masks,
+                    pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
     /**
      * @brief ~FrontPrediction - Destructor
      */
     virtual ~FrontPrediction();
+
+    /**
+     * @brief processPrediction - processing prediction on point cloud
+     */
+    void processPrediction();
 
 private:
     std::vector<sensor_msgs::RegionOfInterest> boxes;
@@ -81,6 +88,7 @@ private:
     std::vector<std::string> class_names;
     std::vector<float_t> scores;
     std::vector<sensor_msgs::Image> masks;
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
 
 };
 
