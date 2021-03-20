@@ -58,4 +58,30 @@ private:
 
 };
 
+class FrontPrediction
+{
+public:
+    /**
+     * @brief FrontPrediction - Constructor
+     */
+    FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+                    std::vector<int32_t> in_class_ids,
+                    std::vector<std::string> in_class_names,
+                    std::vector<float_t> in_scores,
+                    std::vector<sensor_msgs::Image> in_masks);
+
+    /**
+     * @brief ~FrontPrediction - Destructor
+     */
+    virtual ~FrontPrediction();
+
+private:
+    std::vector<sensor_msgs::RegionOfInterest> boxes;
+    std::vector<int32_t> class_ids;
+    std::vector<std::string> class_names;
+    std::vector<float_t> scores;
+    std::vector<sensor_msgs::Image> masks;
+
+};
+
 }

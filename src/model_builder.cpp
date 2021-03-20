@@ -48,6 +48,12 @@ namespace model_builder{
     {
         is_waiting_for_front_prediction = false;
         std::cout << "Received front prediction!" << std::endl;
+
+        FrontPrediction front_prediction(front_detection->boxes,
+                                         front_detection->class_ids,
+                                         front_detection->class_names,
+                                         front_detection->scores,
+                                         front_detection->masks);
     }
 
 
@@ -65,5 +71,27 @@ namespace model_builder{
             return true;
         else
             return false;
+    }
+
+
+    FrontPrediction::FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+                                     std::vector<int32_t> in_class_ids,
+                                     std::vector<std::string> in_class_names,
+                                     std::vector<float_t> in_scores,
+                                     std::vector<sensor_msgs::Image> in_masks
+                                     )
+    {
+        boxes = in_boxes;
+        class_ids = in_class_ids;
+        class_names = in_class_names;
+        scores = in_scores;
+        masks = in_masks;
+
+        std::cout << "Number of front predictions!" << boxes.size() << std::endl;
+    }
+
+    FrontPrediction::~FrontPrediction()
+    {
+
     }
 }
