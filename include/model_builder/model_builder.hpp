@@ -36,9 +36,17 @@ public:
      */
     void frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr& front_detection);
 private:
-    ros::Publisher processed_point_cloud_pub;
+    /**
+     * @brief cur_processing_point_cloud - currently processing point cloud
+     */
+    ros::Publisher cur_processing_point_cloud;
+    /**
+     * @brief post_processed_point_cloud - post processed point cloud
+     */
+    ros::Publisher post_processed_point_cloud;
     ros::Publisher image_from_pcl_pub;
-    pcl::PointCloud<pcl::PointXYZRGB> pcl_processed_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_to_process;
+    pcl::PointCloud<pcl::PointXYZRGB> pcl_output_cloud;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
@@ -50,7 +58,7 @@ private:
     /**
      * @brief setWaitForPredictionsFlags - sets all wait predictions flags to true.
      */
-    void setWaitForPredictionsFlags();
+    void setWaitForPredictionsFlags(bool state);
 
     /**
      * @brief isAllPredictionsProcessed - checks if all predictions are ready
@@ -81,7 +89,7 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction();
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
 
 private:
     std::vector<sensor_msgs::RegionOfInterest> boxes;
@@ -105,6 +113,11 @@ private:
         int b;
     };
 
+    /**
+     * @brief getPredictionColor - Generatres color of prediction based on class id
+     * @param class_id - class id of prediction
+     * @return r, g, b colors for prediction
+     */
     prediction_color getPredictionColor(uint8_t class_id);
 
     enum class_ids_names{

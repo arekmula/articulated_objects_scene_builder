@@ -5,8 +5,9 @@ namespace model_builder{
 
     ModelBuilder::ModelBuilder(ros::NodeHandle &node_handle)
     {
-        // Create a ROS publisher for the output point cloud
-        processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
+        // Create a ROS publisher for the currently processed point cloud
+        cur_processing_point_cloud = node_handle.advertise<sensor_msgs::PointCloud2>("currently_processed_point_cloud", 1000);
+        post_processed_point_cloud = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
 
         // Create a ROS publisher for the image generated from point cloud
         image_from_pcl_pub = node_handle.advertise<sensor_msgs::Image>("image_to_process", 1000);
@@ -23,20 +24,21 @@ namespace model_builder{
         if (ModelBuilder::isAllPredictionsReady())
         {
             // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
-            pcl::fromROSMsg(*input_point_cloud, pcl_processed_cloud);
+            pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
+            pcl_output_cloud = pcl_cloud_to_process;
 
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
             sensor_msgs::Image rgb_image;
-            pcl::toROSMsg(pcl_processed_cloud, rgb_image);
+            pcl::toROSMsg(pcl_cloud_to_process, rgb_image);
             image_from_pcl_pub.publish(rgb_image);
 
             // Publish current processed point cloud
-            sensor_msgs::PointCloud2 output_point_cloud;
-            output_point_cloud = *input_point_cloud;
-            processed_point_cloud_pub.publish(output_point_cloud);
+            sensor_msgs::PointCloud2 currently_processed_point_cloud;
+            currently_processed_point_cloud = *input_point_cloud;
+            cur_processing_point_cloud.publish(currently_processed_point_cloud);
 
             // Set flags for waiting until all predictions on current point cloud will be processed
-            ModelBuilder::setWaitForPredictionsFlags();
+            ModelBuilder::setWaitForPredictionsFlags(true);
         }
         else
         {
@@ -46,7 +48,6 @@ namespace model_builder{
 
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
     {
-        is_waiting_for_front_prediction = false;
         std::cout << "Received front prediction!" << std::endl;
 
         FrontPrediction front_prediction(front_detection->boxes,
@@ -54,15 +55,22 @@ namespace model_builder{
                                          front_detection->class_names,
                                          front_detection->scores,
                                          front_detection->masks,
-                                         pcl_processed_cloud);
-        front_prediction.processPrediction();
+                                         pcl_cloud_to_process);
+        front_prediction.processPrediction(&pcl_output_cloud);
+        is_waiting_for_front_prediction = false;
 
+        if (ModelBuilder::isAllPredictionsReady())
+        {
+            sensor_msgs::PointCloud2 output_point_cloud;
+            pcl::toROSMsg(pcl_output_cloud, output_point_cloud);
+            post_processed_point_cloud.publish(output_point_cloud);
+        }
     }
 
 
-    void ModelBuilder::setWaitForPredictionsFlags()
+    void ModelBuilder::setWaitForPredictionsFlags(bool state)
     {
-        is_waiting_for_front_prediction = true;
+        is_waiting_for_front_prediction = state;
         // Currently not used
         //is_waiting_for_handler_prediction = true;
         //is_waiting_for_joint_prediction = true;
@@ -110,6 +118,7 @@ namespace model_builder{
         int loop_count = 1;
         while (isnan(point.x))
         {
+            // TODO: Checks if its 1, 2, 3 in next iteration or 1, 2, 4, 12 ...
             std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
             std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
             for (int i=0; isnan(point.x) && i < 4; ++i)
@@ -146,7 +155,7 @@ namespace model_builder{
         return colors;
     }
 
-    void FrontPrediction::processPrediction()
+    void FrontPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
     {
 
         uint8_t prediction_number = 0;
@@ -180,7 +189,7 @@ namespace model_builder{
                                                                                  box_y_offset + box_height);
             //std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
 
-            for (auto &point: cloud.points)
+            for (auto &point: output_cloud->points)
             {
                 if (point.x > bottom_left.x && point.y > bottom_left.y
                         && point.x < top_right.x && point.y < top_right.y)
