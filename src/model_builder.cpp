@@ -1,4 +1,5 @@
 #include "../include/model_builder/model_builder.hpp"
+#include "time.h"
 
 namespace model_builder{
 
@@ -121,44 +122,85 @@ namespace model_builder{
         return point;
     }
 
+    FrontPrediction::prediction_color FrontPrediction::getPredictionColor(uint8_t class_id)
+    {
+
+        long int seed = ros::Time::now().toNSec();
+        srand(seed);
+        prediction_color colors={0, 0, 0};
+        if (class_id == ROT_FRONT)
+        {
+            colors.r = int(rand() % 256);
+            colors.g = int(rand() % 52);
+            colors.b = int(rand() % 52);
+            return colors;
+        }
+        else if (class_id == TRANS_FRONT)
+        {
+            colors.r = int(rand() % 52);
+            colors.g = int(rand() % 256);
+            colors.b = int(rand() % 52);
+            return colors;
+        }
+
+        return colors;
+    }
+
     void FrontPrediction::processPrediction()
     {
 
+        uint8_t prediction_number = 0;
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
         {
-
             int box_x_offset = it->x_offset;
             int box_y_offset = it->y_offset;
             int box_width = it->width;
             int box_height = it->height;
+            uint8_t class_id = class_ids[prediction_number];
+            prediction_color color = getPredictionColor(class_id);
 
-            std::cout << "x_offset: " << box_x_offset << " y_offset: " << box_y_offset <<
-                         " width: " << box_width << " height: " << box_height << " cloud width: " << cloud.width <<
-                         " cloud height: " << cloud.height << std::endl;
-
-            // Bottom left corner
+            // Bottom left corner of bounding box
             pcl::PointXYZRGB bottom_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
                                                                                    box_y_offset);
-            std::cout << bottom_left.x << " " << bottom_left.y << " " << bottom_left.z << std::endl;
+            // std::cout << bottom_left.x << " " << bottom_left.y << " " << bottom_left.z << std::endl;
 
+            // Top left -> Not used atm
+            /*
             pcl::PointXYZRGB top_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
-                                                                                box_y_offset + box_height);
-            std::cout << top_left.x << " " << top_left.y << " " << top_left.z << std::endl;
+                                                                                box_y_offset + box_height);*/
+            // std::cout << top_left.x << " " << top_left.y << " " << top_left.z << std::endl;
 
+            // Bottom right -> Not used atm
+            /*
             pcl::PointXYZRGB bottom_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
-                                                                                    box_y_offset);
-            std::cout << bottom_right.x << " " << bottom_right.y << " " << bottom_right.z << std::endl;
+                                                                                    box_y_offset);*/
+            // std::cout << bottom_right.x << " " << bottom_right.y << " " << bottom_right.z << std::endl;
 
             pcl::PointXYZRGB top_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
                                                                                  box_y_offset + box_height);
-            std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
+            //std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
 
             for (auto &point: cloud.points)
             {
                 if (point.x > bottom_left.x && point.y > bottom_left.y
                         && point.x < top_right.x && point.y < top_right.y)
-                    point.r = 255;
+                {
+                    if (class_id == ROT_FRONT)
+                    {
+                        point.r = color.r;
+                        point.g = color.g;
+                        point.b = color.b;
+                    }
+                    else if (class_id == TRANS_FRONT)
+                    {
+                        point.r = color.r;
+                        point.g = color.g;
+                        point.b = color.b;
+                    }
+                }
             }
+
+            prediction_number++;
         }
     }
 }

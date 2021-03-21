@@ -99,6 +99,22 @@ private:
      */
     pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
 
+    struct prediction_color{
+        int r;
+        int g;
+        int b;
+    };
+
+    prediction_color getPredictionColor(uint8_t class_id);
+
+    enum class_ids_names{
+        BG=0,
+        ROT_FRONT=1,
+        TRANS_FRONT=2
+    };
+
+
+
 };
 
 }
