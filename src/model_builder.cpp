@@ -98,45 +98,67 @@ namespace model_builder{
 
     }
 
+    pcl::PointXYZRGB FrontPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
+    {
+        std::vector<int> dx = { 0, 1, 0, -1 };
+        std::vector<int> dy = { 1, 0, -1, 0 };
+
+        pcl::PointXYZRGB point = cloud(x, y);
+
+        // If point not existing in point cloud, find nearest one
+        int loop_count = 1;
+        while (isnan(point.x))
+        {
+            std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+            std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+            for (int i=0; isnan(point.x) && i < 4; ++i)
+            {
+                point = cloud(x+ dx[i], y + dy[i]);
+            }
+            loop_count++;
+        }
+
+        return point;
+    }
+
     void FrontPrediction::processPrediction()
     {
+
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
         {
 
-            // Get bottom left vertices from ROI
-            int x_bottom_left_vertice = it->x_offset;
-            int y_bottom_left_vertice = it->y_offset;
+            int box_x_offset = it->x_offset;
+            int box_y_offset = it->y_offset;
+            int box_width = it->width;
+            int box_height = it->height;
 
-            // Get top right vertices from ROI
-            int x_top_right_vertice = it->x_offset + it->width;
-            int y_top_right_vertice = it->y_offset + it->height;
+            std::cout << "x_offset: " << box_x_offset << " y_offset: " << box_y_offset <<
+                         " width: " << box_width << " height: " << box_height << " cloud width: " << cloud.width <<
+                         " cloud height: " << cloud.height << std::endl;
 
-            // Create list of x vertices
-            pcl::Vertices x_box_vertices;
-            x_box_vertices.vertices.push_back(x_bottom_left_vertice);
-            x_box_vertices.vertices.push_back(x_top_right_vertice);
+            // Bottom left corner
+            pcl::PointXYZRGB bottom_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
+                                                                                   box_y_offset);
+            std::cout << bottom_left.x << " " << bottom_left.y << " " << bottom_left.z << std::endl;
 
-            // Create list of y vertices
-            pcl::Vertices y_box_vertices;
-            y_box_vertices.vertices.push_back(y_bottom_left_vertice);
-            y_box_vertices.vertices.push_back(y_top_right_vertice);
+            pcl::PointXYZRGB top_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
+                                                                                box_y_offset + box_height);
+            std::cout << top_left.x << " " << top_left.y << " " << top_left.z << std::endl;
 
-            std::cout << "Bottom left: " << x_bottom_left_vertice << ", " << y_bottom_left_vertice << std::endl;
-            std::cout << "Top right: " << x_top_right_vertice<< ", " << y_top_right_vertice << std::endl;
+            pcl::PointXYZRGB bottom_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
+                                                                                    box_y_offset);
+            std::cout << bottom_right.x << " " << bottom_right.y << " " << bottom_right.z << std::endl;
 
-            std::vector<pcl::Vertices> box_vertices{x_box_vertices, y_box_vertices};
+            pcl::PointXYZRGB top_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
+                                                                                 box_y_offset + box_height);
+            std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
 
-            pcl::CropHull<pcl::PointXYZRGB> cropFrontHull;
-            // Set x,y vertices as hull indices
-            cropFrontHull.setHullIndices(box_vertices);
-            // Set cloud for CropHull class
-            cropFrontHull.setHullCloud(cloud.makeShared());
-            std::cout << cropFrontHull.getHullCloud()->size() << std::endl;
-
-            pcl::PointCloud<pcl::PointXYZRGB> out_pointcloud;
-            cropFrontHull.filter(out_pointcloud);
-            std::cout << out_pointcloud.size() << std::endl;
+            for (auto &point: cloud.points)
+            {
+                if (point.x > bottom_left.x && point.y > bottom_left.y
+                        && point.x < top_right.x && point.y < top_right.y)
+                    point.r = 255;
+            }
         }
-
     }
 }

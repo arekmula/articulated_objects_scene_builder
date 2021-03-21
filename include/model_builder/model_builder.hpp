@@ -3,7 +3,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/filters/crop_hull.h>
+#include <pcl/filters/passthrough.h>
 
 #include "detection_msgs/FrontPrediction.h"
 
@@ -90,6 +90,14 @@ private:
     std::vector<float_t> scores;
     std::vector<sensor_msgs::Image> masks;
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
+
+    /**
+     * @brief findRealCoordinatesFromImageCoordinates - find real coordinates in cloud based on image coordinates
+     * @param x - x image coordinate
+     * @param y - y image coordinate
+     * @return point containing real coordinates
+     */
+    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
 
 };
 
