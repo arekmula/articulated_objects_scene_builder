@@ -50,7 +50,7 @@ namespace model_builder{
     {
         std::cout << "\nReceived front prediction!" << std::endl;
 
-        Prediction front_prediction(front_detection->boxes,
+        FrontPrediction front_prediction(front_detection->boxes,
                                     front_detection->class_ids,
                                     front_detection->class_names,
                                     front_detection->scores,
@@ -71,7 +71,7 @@ namespace model_builder{
     {
         std::cout << "\nReceived handler prediction!" << std::endl;
 
-        Prediction handler_prediction(handler_detection->boxes,
+        HandlerPrediction handler_prediction(handler_detection->boxes,
                                       handler_detection->class_ids,
                                       handler_detection->class_names,
                                       handler_detection->scores,
@@ -142,6 +142,7 @@ namespace model_builder{
             std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
             std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
 
+            // TODO: If x+dx[i] or y+dy[i] are out of width or height, abort coordinates
             for (int i=0; isnan(point.x) && i < 4; ++i)
             {
                 point = cloud(x+ dx[i], y + dy[i]);
@@ -152,7 +153,7 @@ namespace model_builder{
         return point;
     }
 
-    Prediction::prediction_color Prediction::getPredictionColor(uint8_t class_id)
+    Prediction::prediction_color FrontPrediction::getPredictionColor(uint8_t class_id)
     {
 
         long int seed = ros::Time::now().toNSec();
@@ -176,6 +177,29 @@ namespace model_builder{
         return colors;
     }
 
+    Prediction::prediction_color HandlerPrediction::getPredictionColor(uint8_t class_id)
+    {
+
+        long int seed = ros::Time::now().toNSec();
+        srand(seed);
+        Prediction::prediction_color colors={0, 0, 0};
+        if (class_id == HANDLER)
+        {
+            colors.r = int(rand() % 52);
+            colors.g = int(rand() % 52);
+            colors.b = int(rand() % 256);
+            return colors;
+        }
+
+        return colors;
+    }
+
+    Prediction::prediction_color Prediction::getPredictionColor(uint8_t class_id)
+    {
+        prediction_color color = {0, 0, 0};
+        return color;
+    }
+
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
     {
 
@@ -187,7 +211,7 @@ namespace model_builder{
             int box_width = it->width;
             int box_height = it->height;
             uint8_t class_id = class_ids[prediction_number];
-            prediction_color color = getPredictionColor(class_id);
+            Prediction::prediction_color color = getPredictionColor(class_id);
 
             // Bottom left corner of bounding box
             pcl::PointXYZRGB bottom_left = findRealCoordinatesFromImageCoordinates(box_x_offset,

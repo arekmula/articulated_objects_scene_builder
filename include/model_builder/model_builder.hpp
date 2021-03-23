@@ -79,28 +79,8 @@ private:
 
 class Prediction
 {
-public:
-    /**
-     * @brief Prediction - Constructor
-     */
-    Prediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
-                    std::vector<int32_t> in_class_ids,
-                    std::vector<std::string> in_class_names,
-                    std::vector<float_t> in_scores,
-                    std::vector<sensor_msgs::Image> in_masks,
-                    pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
-    /**
-     * @brief ~Prediction - Destructor
-     */
-    virtual ~Prediction();
-
-    /**
-     * @brief processPrediction - processing prediction on point cloud
-     */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
-
-private:
+protected:
     std::vector<sensor_msgs::RegionOfInterest> boxes;
     std::vector<int32_t> class_ids;
     std::vector<std::string> class_names;
@@ -122,6 +102,81 @@ private:
         int b;
     };
 
+public:
+    /**
+     * @brief Prediction - Constructor
+     */
+    Prediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+                    std::vector<int32_t> in_class_ids,
+                    std::vector<std::string> in_class_names,
+                    std::vector<float_t> in_scores,
+                    std::vector<sensor_msgs::Image> in_masks,
+                    pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
+
+    /**
+     * @brief ~Prediction - Destructor
+     */
+    virtual ~Prediction();
+
+    /**
+     * @brief processPrediction - processing prediction on point cloud
+     */
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
+
+    virtual prediction_color getPredictionColor(uint8_t class_id);
+
+};
+
+class HandlerPrediction
+        : public Prediction{
+
+public:
+    HandlerPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+                       std::vector<int32_t> in_class_ids,
+                       std::vector<std::string> in_class_names,
+                       std::vector<float_t> in_scores,
+                       std::vector<sensor_msgs::Image> in_masks,
+                       pcl::PointCloud<pcl::PointXYZRGB> in_cloud):Prediction(in_boxes,
+                                                                              in_class_ids,
+                                                                              in_class_names,
+                                                                              in_scores,
+                                                                              in_masks,
+                                                                              in_cloud)
+    {}
+
+    ~HandlerPrediction(){}
+
+
+    prediction_color getPredictionColor(uint8_t class_id);
+
+private:
+    enum class_ids_names{
+        NONE=0,
+        HANDLER=1,
+    };
+
+};
+
+
+class FrontPrediction
+        : public Prediction{
+
+public:
+    FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+                    std::vector<int32_t> in_class_ids,
+                    std::vector<std::string> in_class_names,
+                    std::vector<float_t> in_scores,
+                    std::vector<sensor_msgs::Image> in_masks,
+                    pcl::PointCloud<pcl::PointXYZRGB> in_cloud):Prediction(in_boxes,
+                                                                           in_class_ids,
+                                                                           in_class_names,
+                                                                           in_scores,
+                                                                           in_masks,
+                                                                           in_cloud)
+    {}
+
+    ~FrontPrediction(){}
+
     /**
      * @brief getPredictionColor - Generatres color of prediction based on class id
      * @param class_id - class id of prediction
@@ -129,13 +184,12 @@ private:
      */
     prediction_color getPredictionColor(uint8_t class_id);
 
+private:
     enum class_ids_names{
         BG=0,
         ROT_FRONT=1,
         TRANS_FRONT=2
     };
-
-
 
 };
 
