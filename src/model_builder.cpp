@@ -51,11 +51,11 @@ namespace model_builder{
         std::cout << "\nReceived front prediction!" << std::endl;
 
         FrontPrediction front_prediction(front_detection->boxes,
-                                    front_detection->class_ids,
-                                    front_detection->class_names,
-                                    front_detection->scores,
-                                    front_detection->masks,
-                                    pcl_cloud_to_process);
+                                         front_detection->class_ids,
+                                         front_detection->class_names,
+                                         front_detection->scores,
+                                         front_detection->masks,
+                                         pcl_cloud_to_process);
         front_prediction.processPrediction(&pcl_output_cloud);
         is_waiting_for_front_prediction = false;
 
@@ -72,11 +72,11 @@ namespace model_builder{
         std::cout << "\nReceived handler prediction!" << std::endl;
 
         HandlerPrediction handler_prediction(handler_detection->boxes,
-                                      handler_detection->class_ids,
-                                      handler_detection->class_names,
-                                      handler_detection->scores,
-                                      handler_detection->masks,
-                                      pcl_cloud_to_process);
+                                             handler_detection->class_ids,
+                                             handler_detection->class_names,
+                                             handler_detection->scores,
+                                             handler_detection->masks,
+                                             pcl_cloud_to_process);
         handler_prediction.processPrediction(&pcl_output_cloud);
         is_waiting_for_handler_prediction = false;
 
