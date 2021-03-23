@@ -91,10 +91,9 @@ namespace model_builder{
 
     void ModelBuilder::setWaitForPredictionsFlags(bool state)
     {
-        //is_waiting_for_front_prediction = state;
-        // Currently not used
+        is_waiting_for_front_prediction = state;
         is_waiting_for_handler_prediction = state;
-        //is_waiting_for_joint_prediction = true;
+        //is_waiting_for_joint_prediction = state;
     }
 
     bool ModelBuilder::isAllPredictionsReady()
@@ -185,9 +184,9 @@ namespace model_builder{
         Prediction::prediction_color colors={0, 0, 0};
         if (class_id == HANDLER)
         {
-            colors.r = int(rand() % 52);
-            colors.g = int(rand() % 52);
-            colors.b = int(rand() % 256);
+            colors.r = 0;
+            colors.g = 0;
+            colors.b = 255;
             return colors;
         }
 
@@ -203,6 +202,7 @@ namespace model_builder{
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
     {
 
+        uint8_t HANDLER_BLUE_COLOR=255;
         uint8_t prediction_number = 0;
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
         {
@@ -237,7 +237,7 @@ namespace model_builder{
             for (auto &point: output_cloud->points)
             {
                 if (point.x > bottom_left.x && point.y > bottom_left.y
-                        && point.x < top_right.x && point.y < top_right.y)
+                        && point.x < top_right.x && point.y < top_right.y && point.b != HANDLER_BLUE_COLOR)
                 {
                         point.r = color.r;
                         point.g = color.g;
