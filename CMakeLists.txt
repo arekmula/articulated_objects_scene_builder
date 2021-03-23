@@ -125,6 +125,7 @@ include_directories(
 
 file(GLOB model_builder_sources
     src/model_builder.cpp
+    src/prediction.cpp
 )
 
 file(GLOB model_builder_headers
