@@ -5,6 +5,8 @@
 #include <pcl/point_types.h>
 
 #include "detection_msgs/FrontPrediction.h"
+#include "detection_msgs/HandlerPrediction.h"
+
 
 namespace model_builder
 {
@@ -34,6 +36,14 @@ public:
      * @param front_detection - front prediction
      */
     void frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr& front_detection);
+
+
+    /**
+     * @brief handlerPredictionCallback - callback to handler detection subscriber
+     * @param handler_detection - handler detection
+     */
+    void handlerPredictionCallback(const detection_msgs::HandlerPredictionConstPtr& handler_detection);
+
 private:
     /**
      * @brief cur_processing_point_cloud - currently processing point cloud
@@ -67,13 +77,13 @@ private:
 
 };
 
-class FrontPrediction
+class Prediction
 {
 public:
     /**
-     * @brief FrontPrediction - Constructor
+     * @brief Prediction - Constructor
      */
-    FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+    Prediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
                     std::vector<int32_t> in_class_ids,
                     std::vector<std::string> in_class_names,
                     std::vector<float_t> in_scores,
@@ -81,9 +91,9 @@ public:
                     pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
     /**
-     * @brief ~FrontPrediction - Destructor
+     * @brief ~Prediction - Destructor
      */
-    virtual ~FrontPrediction();
+    virtual ~Prediction();
 
     /**
      * @brief processPrediction - processing prediction on point cloud

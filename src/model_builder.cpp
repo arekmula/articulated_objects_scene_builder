@@ -48,16 +48,37 @@ namespace model_builder{
 
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
     {
-        std::cout << "Received front prediction!" << std::endl;
+        std::cout << "\nReceived front prediction!" << std::endl;
 
-        FrontPrediction front_prediction(front_detection->boxes,
-                                         front_detection->class_ids,
-                                         front_detection->class_names,
-                                         front_detection->scores,
-                                         front_detection->masks,
-                                         pcl_cloud_to_process);
+        Prediction front_prediction(front_detection->boxes,
+                                    front_detection->class_ids,
+                                    front_detection->class_names,
+                                    front_detection->scores,
+                                    front_detection->masks,
+                                    pcl_cloud_to_process);
         front_prediction.processPrediction(&pcl_output_cloud);
         is_waiting_for_front_prediction = false;
+
+        if (ModelBuilder::isAllPredictionsReady())
+        {
+            sensor_msgs::PointCloud2 output_point_cloud;
+            pcl::toROSMsg(pcl_output_cloud, output_point_cloud);
+            post_processed_point_cloud.publish(output_point_cloud);
+        }
+    }
+
+    void ModelBuilder::handlerPredictionCallback(const detection_msgs::HandlerPredictionConstPtr &handler_detection)
+    {
+        std::cout << "\nReceived handler prediction!" << std::endl;
+
+        Prediction handler_prediction(handler_detection->boxes,
+                                      handler_detection->class_ids,
+                                      handler_detection->class_names,
+                                      handler_detection->scores,
+                                      handler_detection->masks,
+                                      pcl_cloud_to_process);
+        handler_prediction.processPrediction(&pcl_output_cloud);
+        is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
         {
@@ -70,9 +91,9 @@ namespace model_builder{
 
     void ModelBuilder::setWaitForPredictionsFlags(bool state)
     {
-        is_waiting_for_front_prediction = state;
+        //is_waiting_for_front_prediction = state;
         // Currently not used
-        //is_waiting_for_handler_prediction = true;
+        is_waiting_for_handler_prediction = state;
         //is_waiting_for_joint_prediction = true;
     }
 
@@ -85,7 +106,7 @@ namespace model_builder{
     }
 
 
-    FrontPrediction::FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
+    Prediction::Prediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
                                      std::vector<int32_t> in_class_ids,
                                      std::vector<std::string> in_class_names,
                                      std::vector<float_t> in_scores,
@@ -99,28 +120,28 @@ namespace model_builder{
         masks = in_masks;
         cloud = in_cloud;
 
-        std::cout << "Number of front predictions: " << boxes.size() << std::endl;
+        std::cout << "Number of predictions: " << boxes.size() << std::endl;
     }
 
-    FrontPrediction::~FrontPrediction()
+    Prediction::~Prediction()
     {
 
     }
 
-    pcl::PointXYZRGB FrontPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
+    pcl::PointXYZRGB Prediction::findRealCoordinatesFromImageCoordinates(int x, int y)
     {
-        std::vector<int> dx = { 0, 1, 0, -1 };
-        std::vector<int> dy = { 1, 0, -1, 0 };
-
         pcl::PointXYZRGB point = cloud(x, y);
 
         // If point not existing in point cloud, find nearest one
         int loop_count = 1;
         while (isnan(point.x))
         {
-            // TODO: Checks if its 1, 2, 3 in next iteration or 1, 2, 4, 12 ...
+            // Values to move. Multiplied by loop_count
+            std::vector<int> dx = { 0, 1, 0, -1 };
+            std::vector<int> dy = { 1, 0, -1, 0 };
             std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
             std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+
             for (int i=0; isnan(point.x) && i < 4; ++i)
             {
                 point = cloud(x+ dx[i], y + dy[i]);
@@ -131,7 +152,7 @@ namespace model_builder{
         return point;
     }
 
-    FrontPrediction::prediction_color FrontPrediction::getPredictionColor(uint8_t class_id)
+    Prediction::prediction_color Prediction::getPredictionColor(uint8_t class_id)
     {
 
         long int seed = ros::Time::now().toNSec();
@@ -155,7 +176,7 @@ namespace model_builder{
         return colors;
     }
 
-    void FrontPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
+    void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
     {
 
         uint8_t prediction_number = 0;
@@ -194,22 +215,14 @@ namespace model_builder{
                 if (point.x > bottom_left.x && point.y > bottom_left.y
                         && point.x < top_right.x && point.y < top_right.y)
                 {
-                    if (class_id == ROT_FRONT)
-                    {
                         point.r = color.r;
                         point.g = color.g;
                         point.b = color.b;
-                    }
-                    else if (class_id == TRANS_FRONT)
-                    {
-                        point.r = color.r;
-                        point.g = color.g;
-                        point.b = color.b;
-                    }
                 }
             }
 
             prediction_number++;
         }
+        std::cout << "*****************Finished processing prediction*******************" << std::endl;
     }
 }

@@ -13,10 +13,22 @@ int main(int argc, char **argv)
     model_builder::ModelBuilder modelBuilder(n);
 
     // ROS subscriber for the input point cloud
-    ros::Subscriber point_cloud_sub = n.subscribe("/hz_points", 1, &model_builder::ModelBuilder::pointCloudCallback, &modelBuilder);
+    ros::Subscriber point_cloud_sub = n.subscribe("/hz_points",
+                                                  1,
+                                                  &model_builder::ModelBuilder::pointCloudCallback,
+                                                  &modelBuilder);
 
     // ROS subscriber for the front prediction
-    ros::Subscriber front_prediction_sub = n.subscribe("/front_prediction", 1, &model_builder::ModelBuilder::frontPredictionCallback, &modelBuilder);
+    ros::Subscriber front_prediction_sub = n.subscribe("/front_prediction",
+                                                       1,
+                                                       &model_builder::ModelBuilder::frontPredictionCallback,
+                                                       &modelBuilder);
+
+    ros::Subscriber handler_prediction_sub = n.subscribe("/handler_prediction",
+                                                         1,
+                                                         &model_builder::ModelBuilder::handlerPredictionCallback,
+                                                         &modelBuilder);
+
     ros::Rate loop_rate(10);
 
     while (ros::ok())
