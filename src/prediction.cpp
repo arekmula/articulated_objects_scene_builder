@@ -208,6 +208,17 @@ namespace model_builder{
             int x2 = it->x2;
             int y2 = it->y2;
             pcl::PointXYZRGB bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+
+            for (auto &point: output_cloud->points)
+            {
+                if (point.x > bottom_point.x && point.y > bottom_point.y
+                        && point.x < top_point.x+0.01 && point.y < top_point.y+0.01)
+                {
+                        point.r = 255;
+                        point.g = 255;
+                        point.b = 0;
+                }
+            }
         }
     }
 }
