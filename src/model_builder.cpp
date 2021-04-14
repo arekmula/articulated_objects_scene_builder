@@ -89,6 +89,12 @@ namespace model_builder{
     {
         std::cout << "Received joint prediction!" << std::endl;
 
+        JointPrediction joint_prediction(joint_detection->x1,
+                                         joint_detection->y1,
+                                         joint_detection->x2,
+                                         joint_detection->y2,
+                                         pcl_cloud_to_process);
+        joint_prediction.processPrediction(&pcl_output_cloud);
         is_waiting_for_joint_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())

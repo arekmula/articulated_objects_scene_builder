@@ -9,6 +9,13 @@
 
 namespace model_builder {
 
+struct joint_prediction_vertices{
+    int32_t x1;
+    int32_t y1;
+    int32_t x2;
+    int32_t y2;
+};
+
 class Prediction
 {
 
@@ -130,4 +137,37 @@ public:
 
 };
 
+class JointPrediction{
+
+private:
+    std::vector<joint_prediction_vertices> predictions;
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+
+    /**
+     * @brief findRealCoordinatesFromImageCoordinates - find real coordinates in cloud based on image coordinates
+     * @param x - x image coordinate
+     * @param y - y image coordinate
+     * @return point containing real coordinates
+     */
+    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
+
+public:
+
+    JointPrediction(std::vector<int32_t> in_x1,
+                    std::vector<int32_t> in_y1,
+                    std::vector<int32_t> in_x2,
+                    std::vector<int32_t> in_y2,
+                    pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
+
+    ~JointPrediction();
+
+    /**
+     * @brief processPrediction - process joint prediction
+     * @param output_cloud
+     */
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
+};
+
 }
+
+

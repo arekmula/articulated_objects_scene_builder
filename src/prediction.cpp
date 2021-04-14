@@ -148,4 +148,66 @@ namespace model_builder{
         return colors;
     }
 
+    JointPrediction::JointPrediction (std::vector<int32_t> in_x1, std::vector<int32_t> in_y1,
+                                      std::vector<int32_t> in_x2, std::vector<int32_t> in_y2,
+                                      pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
+    {
+        for (int i=0; i<in_x1.size(); i++)
+        {
+            joint_prediction_vertices prediction = {};
+            prediction.x1 = in_x1[i];
+            prediction.y1 = in_y1[i];
+            prediction.x2 = in_x2[i];
+            prediction.y2 = in_y2[i];
+
+            predictions.push_back(prediction);
+        }
+        cloud = in_cloud;
+
+        std::cout << "Number of joint predictions: " << predictions.size() << std::endl;
+    }
+
+    JointPrediction::~JointPrediction()
+    {
+
+    }
+
+    pcl::PointXYZRGB JointPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
+    {
+        pcl::PointXYZRGB point = cloud(x, y);
+
+        // If point not existing in point cloud, find nearest one
+        int loop_count = 1;
+        while (isnan(point.x))
+        {
+            // Values to move. Multiplied by loop_count
+            std::vector<int> dx = { 0, 1, 0, -1 };
+            std::vector<int> dy = { 1, 0, -1, 0 };
+            std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+            std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+
+            // TODO: If x+dx[i] or y+dy[i] are out of width or height, abort coordinates
+            for (int i=0; isnan(point.x) && i < 4; ++i)
+            {
+                point = cloud(x+ dx[i], y + dy[i]);
+            }
+            loop_count++;
+        }
+
+        return point;
+    }
+
+    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
+    {
+        for (std::vector<joint_prediction_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
+        {
+            int x1 = it->x1;
+            int y1 = it->y1;
+            pcl::PointXYZRGB top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
+
+            int x2 = it->x2;
+            int y2 = it->y2;
+            pcl::PointXYZRGB bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+        }
+    }
 }
