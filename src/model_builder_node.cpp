@@ -23,11 +23,17 @@ int main(int argc, char **argv)
                                                        1,
                                                        &model_builder::ModelBuilder::frontPredictionCallback,
                                                        &modelBuilder);
-
+    // ROS subscriber for the handler prediction
     ros::Subscriber handler_prediction_sub = n.subscribe("/handler_prediction",
                                                          1,
                                                          &model_builder::ModelBuilder::handlerPredictionCallback,
                                                          &modelBuilder);
+
+    // ROS subscriber for the joint prediction
+    ros::Subscriber joint_prediction_sub = n.subscribe("/joint_prediction",
+                                                       1,
+                                                       &model_builder::ModelBuilder::jointPredictionCallback,
+                                                       &modelBuilder);
 
     ros::Rate loop_rate(10);
 

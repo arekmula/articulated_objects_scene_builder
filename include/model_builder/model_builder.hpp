@@ -6,7 +6,7 @@
 
 #include "detection_msgs/FrontPrediction.h"
 #include "detection_msgs/HandlerPrediction.h"
-
+#include "detection_msgs/JointPrediction.h"
 
 namespace model_builder
 {
@@ -80,6 +80,12 @@ public:
      * @param handler_detection - handler detection
      */
     void handlerPredictionCallback(const detection_msgs::HandlerPredictionConstPtr& handler_detection);
+
+    /**
+     * @brief jointPredictionCallback - callback to joint detection subscriber
+     * @param joint_detection - joint detection
+     */
+    void jointPredictionCallback(const detection_msgs::JointPredictionConstPtr& joint_detection);
 
 };
 

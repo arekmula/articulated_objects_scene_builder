@@ -85,12 +85,23 @@ namespace model_builder{
         }
     }
 
+    void ModelBuilder::jointPredictionCallback(const detection_msgs::JointPredictionConstPtr &joint_detection)
+    {
+        std::cout << "Received joint prediction!" << std::endl;
+
+        is_waiting_for_joint_prediction = false;
+
+        if (ModelBuilder::isAllPredictionsReady())
+        {
+            publishProcessedPointCloud();
+        }
+    }
 
     void ModelBuilder::setWaitForPredictionsFlags(bool state)
     {
         is_waiting_for_front_prediction = state;
         is_waiting_for_handler_prediction = state;
-        //is_waiting_for_joint_prediction = state;
+        is_waiting_for_joint_prediction = state;
     }
 
     bool ModelBuilder::isAllPredictionsReady()
