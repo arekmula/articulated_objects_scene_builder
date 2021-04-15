@@ -26,7 +26,8 @@ namespace model_builder{
             std::cout << "\nNew point cloud to process!" << std::endl;
             // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
             pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-            pcl_output_cloud = pcl_cloud_to_process;
+            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+            pcl_output_cloud->header = pcl_cloud_to_process.header;
 
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
             sensor_msgs::Image rgb_image;
@@ -57,7 +58,7 @@ namespace model_builder{
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_cloud_to_process);
-        front_prediction.processPrediction(&pcl_output_cloud);
+        front_prediction.processPrediction(pcl_output_cloud);
         is_waiting_for_front_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -76,7 +77,7 @@ namespace model_builder{
                                              handler_detection->scores,
                                              handler_detection->masks,
                                              pcl_cloud_to_process);
-        handler_prediction.processPrediction(&pcl_output_cloud);
+        handler_prediction.processPrediction(pcl_output_cloud);
         is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -94,7 +95,7 @@ namespace model_builder{
                                          joint_detection->x2,
                                          joint_detection->y2,
                                          pcl_cloud_to_process);
-        joint_prediction.processPrediction(&pcl_output_cloud);
+        joint_prediction.processPrediction(pcl_output_cloud);
         is_waiting_for_joint_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -122,7 +123,7 @@ namespace model_builder{
     {
         std::cout << "*****************Publishing processed point cloud*******************" << std::endl;
         sensor_msgs::PointCloud2 output_point_cloud;
-        pcl::toROSMsg(pcl_output_cloud, output_point_cloud);
+        pcl::toROSMsg(*pcl_output_cloud, output_point_cloud);
         post_processed_point_cloud.publish(output_point_cloud);
     }
 }

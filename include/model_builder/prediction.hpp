@@ -61,11 +61,26 @@ protected:
      */
     void extractCloudFromIndices(pcl::PointIndices::Ptr indices,
                                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud);
+    /**
+     * @brief extractCloudFromIndices - extract cloud based on  inliers indices
+     * @param input cloud - if other than cloud stored in class
+     * @param boundingbox_inliers_indices
+     * @param extracted_cloud
+     */
     void extractCloudFromIndices(pcl::PointIndices::Ptr indices,
                                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
                                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud);
 
-
+    /**
+     * @brief findPlane - finds plane in input cloud
+     * @param input_cloud
+     * @param should_optimize_coeffficients
+     * @param model_type
+     * @param method_type
+     * @param distance_threshold
+     * @param plane_inliers - output plane inliers
+     * @param plane_coefficients - output plane coefficients
+     */
     void findPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud, bool should_optimize_coeffficients,
                    pcl::SacModel model_type, const int method_type, float distance_threshold,
                    pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients);
@@ -95,7 +110,7 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
 
@@ -200,7 +215,7 @@ public:
      * @brief processPrediction - process joint prediction
      * @param output_cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
 };
 
 }

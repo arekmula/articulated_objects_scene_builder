@@ -106,7 +106,7 @@ namespace model_builder{
         return color;
     }
 
-    void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
+    void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
     {
 
         uint8_t HANDLER_BLUE_COLOR=255;
@@ -126,7 +126,7 @@ namespace model_builder{
 
             // Construct cloud from detected bounding box inliers
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr bounding_box_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-            extractCloudFromIndices(boundingbox_inliers_indices, bounding_box_extracted_cloud);
+            extractCloudFromIndices(boundingbox_inliers_indices, bounding_box_extracted_cloud);         
 
             // Find plane in cloud created from bounding box
             pcl::ModelCoefficients::Ptr plane_coefficients(new pcl::ModelCoefficients);
@@ -241,7 +241,7 @@ namespace model_builder{
         return point;
     }
 
-    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB> *output_cloud)
+    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
     {
         for (std::vector<joint_prediction_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
         {

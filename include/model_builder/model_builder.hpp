@@ -25,7 +25,7 @@ private:
     ros::Publisher post_processed_point_cloud;
     ros::Publisher image_from_pcl_pub;
     pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_to_process;
-    pcl::PointCloud<pcl::PointXYZRGB> pcl_output_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_output_cloud;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
