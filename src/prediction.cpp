@@ -65,14 +65,39 @@ namespace model_builder{
         }
     }
 
-    void Prediction::extractBoundingBoxCloud(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+    void Prediction::findPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud, bool should_optimize_coeffficients,
+                               pcl::SacModel model_type, const int method_type, float distance_threshold,
+                               pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients)
+    {
+        pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+        seg.setOptimizeCoefficients(should_optimize_coeffficients);
+        seg.setModelType(model_type);
+        seg.setMethodType(method_type);
+        seg.setDistanceThreshold(distance_threshold);
+
+        seg.setInputCloud(input_cloud);
+        seg.segment(*plane_inliers, *plane_coefficients);
+    }
+
+    void Prediction::extractCloudFromIndices(pcl::PointIndices::Ptr indices,
                                              pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
     {
-        pcl::ExtractIndices<pcl::PointXYZRGB> extract_bounding_box;
-        extract_bounding_box.setInputCloud(cloud.makeShared());
-        extract_bounding_box.setIndices(boundingbox_inliers_indices);
-        extract_bounding_box.setNegative(false);
-        extract_bounding_box.filter(*extracted_cloud);
+        pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+        extract.setInputCloud(cloud.makeShared());
+        extract.setIndices(indices);
+        extract.setNegative(false);
+        extract.filter(*extracted_cloud);
+    }
+
+    void Prediction::extractCloudFromIndices(pcl::PointIndices::Ptr indices,
+                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
+    {
+        pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+        extract.setInputCloud(input_cloud);
+        extract.setIndices(indices);
+        extract.setNegative(false);
+        extract.filter(*extracted_cloud);
     }
 
     Prediction::prediction_color Prediction::getPredictionColor(uint8_t class_id)
@@ -95,20 +120,32 @@ namespace model_builder{
             uint8_t class_id = class_ids[prediction_number];
             Prediction::prediction_color color = getPredictionColor(class_id);
 
+            // Get detected bounding box inliers
             pcl::PointIndices::Ptr boundingbox_inliers_indices(new pcl::PointIndices);
             getBoundingBoxInliersIndices(boundingbox_inliers_indices, box_y_offset, box_height, box_x_offset, box_width);
 
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-            extractBoundingBoxCloud(boundingbox_inliers_indices, extracted_cloud);
+            // Construct cloud from detected bounding box inliers
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr bounding_box_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+            extractCloudFromIndices(boundingbox_inliers_indices, bounding_box_extracted_cloud);
 
-            for (auto &point: extracted_cloud->points)
+            // Find plane in cloud created from bounding box
+            pcl::ModelCoefficients::Ptr plane_coefficients(new pcl::ModelCoefficients);
+            pcl::PointIndices::Ptr plane_indices(new pcl::PointIndices);
+            findPlane(bounding_box_extracted_cloud, true, pcl::SACMODEL_PLANE, pcl::SAC_RANSAC,
+                      0.01, plane_indices, plane_coefficients);
+
+            // Construct cloud from detected plane
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+            extractCloudFromIndices(plane_indices, bounding_box_extracted_cloud, plane_cloud);
+
+            for (auto &point: plane_cloud->points)
             {
                 point.r = color.r;
                 point.g = color.g;
                 point.b = color.b;
             }
 
-            *output_cloud+=*extracted_cloud;
+            *output_cloud+=*plane_cloud;
 
             prediction_number++;
         }

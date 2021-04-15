@@ -3,6 +3,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/ModelCoefficients.h>
 
 #include "detection_msgs/FrontPrediction.h"
 #include "detection_msgs/HandlerPrediction.h"
@@ -50,8 +54,21 @@ protected:
                                       int box_x_offset,
                                       int box_width);
 
-    void extractBoundingBoxCloud(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+    /**
+     * @brief extractCloudFromIndices - extract cloud based on  inliers indices
+     * @param boundingbox_inliers_indices
+     * @param extracted_cloud
+     */
+    void extractCloudFromIndices(pcl::PointIndices::Ptr indices,
                                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud);
+    void extractCloudFromIndices(pcl::PointIndices::Ptr indices,
+                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud);
+
+
+    void findPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud, bool should_optimize_coeffficients,
+                   pcl::SacModel model_type, const int method_type, float distance_threshold,
+                   pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients);
 
     struct prediction_color{
         int r;
