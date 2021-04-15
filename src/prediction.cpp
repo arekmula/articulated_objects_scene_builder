@@ -1,7 +1,5 @@
 #include "../include/model_builder/prediction.hpp"
 #include <pcl/filters/extract_indices.h>
-#include <pcl/io/pcd_io.h>
-
 
 namespace model_builder{
 
@@ -52,6 +50,30 @@ namespace model_builder{
         return point;
     }
 
+    void Prediction::getBoundingBoxInliersIndices(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+                                                  int box_y_offset,
+                                                  int box_height,
+                                                  int box_x_offset,
+                                                  int box_width)
+    {
+        for (int i=box_y_offset; i<=box_y_offset+box_height; i++)
+        {
+            for (int j=box_x_offset; j<=box_x_offset+box_width; j++)
+            {
+                boundingbox_inliers_indices->indices.push_back(cloud.width * i + j);
+            }
+        }
+    }
+
+    void Prediction::extractBoundingBoxCloud(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
+    {
+        pcl::ExtractIndices<pcl::PointXYZRGB> extract_bounding_box;
+        extract_bounding_box.setInputCloud(cloud.makeShared());
+        extract_bounding_box.setIndices(boundingbox_inliers_indices);
+        extract_bounding_box.setNegative(false);
+        extract_bounding_box.filter(*extracted_cloud);
+    }
 
     Prediction::prediction_color Prediction::getPredictionColor(uint8_t class_id)
     {
@@ -73,55 +95,20 @@ namespace model_builder{
             uint8_t class_id = class_ids[prediction_number];
             Prediction::prediction_color color = getPredictionColor(class_id);
 
-            // Bottom left corner of bounding box
-            pcl::PointXYZRGB bottom_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
-                                                                                   box_y_offset);
-            // std::cout << bottom_left.x << " " << bottom_left.y << " " << bottom_left.z << std::endl;
-
-            // Top left -> Not used atm
-            /*
-            pcl::PointXYZRGB top_left = findRealCoordinatesFromImageCoordinates(box_x_offset,
-                                                                                box_y_offset + box_height);*/
-            // std::cout << top_left.x << " " << top_left.y << " " << top_left.z << std::endl;
-
-            // Bottom right -> Not used atm
-            /*
-            pcl::PointXYZRGB bottom_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
-                                                                                    box_y_offset);*/
-            // std::cout << bottom_right.x << " " << bottom_right.y << " " << bottom_right.z << std::endl;
-
-            pcl::PointXYZRGB top_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
-                                                                                 box_y_offset + box_height);
-
-            //std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
-            pcl::PointIndices::Ptr boundingbox_inliers(new pcl::PointIndices);
-
-            // Construct bounding box inliers. The point cloud is stored in 1D organized array
-            for (int i=box_y_offset; i<=box_y_offset+box_height; i++)
-            {
-                for (int j=box_x_offset; j<=box_x_offset+box_width; j++)
-                {
-                    boundingbox_inliers->indices.push_back(cloud.width * i + j);
-                }
-            }
+            pcl::PointIndices::Ptr boundingbox_inliers_indices(new pcl::PointIndices);
+            getBoundingBoxInliersIndices(boundingbox_inliers_indices, box_y_offset, box_height, box_x_offset, box_width);
 
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-            pcl::ExtractIndices<pcl::PointXYZRGB> extract_bounding_box;
-            extract_bounding_box.setInputCloud(cloud.makeShared());
-            extract_bounding_box.setIndices(boundingbox_inliers);
-            extract_bounding_box.setNegative(false);
-            extract_bounding_box.filter(*extracted_cloud);
+            extractBoundingBoxCloud(boundingbox_inliers_indices, extracted_cloud);
 
-            for (auto &point: output_cloud->points)
+            for (auto &point: extracted_cloud->points)
             {
-                if (point.x > bottom_left.x && point.y > bottom_left.y
-                        && point.x < top_right.x && point.y < top_right.y && point.b != HANDLER_BLUE_COLOR)
-                {
-                        point.r = color.r;
-                        point.g = color.g;
-                        point.b = color.b;
-                }
+                point.r = color.r;
+                point.g = color.g;
+                point.b = color.b;
             }
+
+            *output_cloud+=*extracted_cloud;
 
             prediction_number++;
         }

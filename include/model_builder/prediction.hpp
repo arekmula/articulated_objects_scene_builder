@@ -35,6 +35,24 @@ protected:
      */
     pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
 
+    /**
+     * @brief getBoundingBoxInliers - Gets bounding box inliers indices from point cloud which is stored in 1D
+     *  organized array
+     * @param boundingbox_inliers_indices - point indices with bounding box inliers
+     * @param box_y_offset
+     * @param box_height
+     * @param box_x_offset
+     * @param box_width
+     */
+    void getBoundingBoxInliersIndices(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+                                      int box_y_offset,
+                                      int box_height,
+                                      int box_x_offset,
+                                      int box_width);
+
+    void extractBoundingBoxCloud(pcl::PointIndices::Ptr boundingbox_inliers_indices,
+                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud);
+
     struct prediction_color{
         int r;
         int g;
