@@ -1,4 +1,6 @@
 #include "../include/model_builder/prediction.hpp"
+#include <pcl/filters/extract_indices.h>
+#include <pcl/io/pcd_io.h>
 
 
 namespace model_builder{
@@ -90,7 +92,25 @@ namespace model_builder{
 
             pcl::PointXYZRGB top_right = findRealCoordinatesFromImageCoordinates(box_x_offset + box_width,
                                                                                  box_y_offset + box_height);
+
             //std::cout << top_right.x << " " << top_right.y << " " << top_right.z << std::endl;
+            pcl::PointIndices::Ptr boundingbox_inliers(new pcl::PointIndices);
+
+            // Construct bounding box inliers. The point cloud is stored in 1D organized array
+            for (int i=box_y_offset; i<=box_y_offset+box_height; i++)
+            {
+                for (int j=box_x_offset; j<=box_x_offset+box_width; j++)
+                {
+                    boundingbox_inliers->indices.push_back(cloud.width * i + j);
+                }
+            }
+
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+            pcl::ExtractIndices<pcl::PointXYZRGB> extract_bounding_box;
+            extract_bounding_box.setInputCloud(cloud.makeShared());
+            extract_bounding_box.setIndices(boundingbox_inliers);
+            extract_bounding_box.setNegative(false);
+            extract_bounding_box.filter(*extracted_cloud);
 
             for (auto &point: output_cloud->points)
             {
