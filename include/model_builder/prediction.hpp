@@ -85,6 +85,10 @@ protected:
                    pcl::SacModel model_type, const int method_type, float distance_threshold,
                    pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients);
 
+    void findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                           pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                           double radius);
+
     struct prediction_color{
         int r;
         int g;
@@ -110,7 +114,7 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud, bool should_find_normal);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
 
@@ -155,13 +159,6 @@ public:
 class FrontPrediction
         : public Prediction{
 
-private:
-    enum class_ids_names{
-        BG=0,
-        ROT_FRONT=1,
-        TRANS_FRONT=2
-    };
-
 public:
     FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
                     std::vector<int32_t> in_class_ids,
@@ -184,6 +181,12 @@ public:
      * @return r, g, b colors for prediction
      */
     prediction_color getPredictionColor(uint8_t class_id);
+
+    enum class_ids_names{
+        BG=0,
+        ROT_FRONT=1,
+        TRANS_FRONT=2
+    };
 
 };
 
@@ -215,7 +218,7 @@ public:
      * @brief processPrediction - process joint prediction
      * @param output_cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud);
 };
 
 }

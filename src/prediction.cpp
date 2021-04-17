@@ -1,5 +1,6 @@
 #include "../include/model_builder/prediction.hpp"
 #include <pcl/filters/extract_indices.h>
+#include <pcl/features/normal_3d.h>
 
 namespace model_builder{
 
@@ -106,7 +107,23 @@ namespace model_builder{
         return color;
     }
 
-    void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
+    void Prediction::findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                            pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                                            double radius)
+    {
+        pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+        ne.setInputCloud(input_cloud);
+
+        pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+        ne.setSearchMethod(tree);
+
+        ne.setRadiusSearch(radius);
+
+        ne.compute(*cloud_normals);
+    }
+
+    void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud,
+                                       bool should_find_normal)
     {
 
         uint8_t HANDLER_BLUE_COLOR=255;
@@ -138,6 +155,12 @@ namespace model_builder{
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
             extractCloudFromIndices(plane_indices, bounding_box_extracted_cloud, plane_cloud);
 
+            // Find normal to plane
+            pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+            if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
+                findNormalToPlane(plane_cloud, cloud_normals, 0.03);
+
+            // Color the detected plane according to its class id
             for (auto &point: plane_cloud->points)
             {
                 point.r = color.r;
@@ -145,7 +168,15 @@ namespace model_builder{
                 point.b = color.b;
             }
 
-            *output_cloud+=*plane_cloud;
+            // Create temporary output cloud which stores plane cloud and its normals if detected front is TRANS_FRONT
+            pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr temp_output_cloud (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+            temp_output_cloud->resize(plane_cloud->width*plane_cloud->height);
+            pcl::concatenateFields(*plane_cloud, *temp_output_cloud, *temp_output_cloud);
+
+            if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
+                pcl::concatenateFields(*temp_output_cloud, *cloud_normals, *temp_output_cloud);
+
+            *output_cloud+=*temp_output_cloud;
 
             prediction_number++;
         }
@@ -241,7 +272,7 @@ namespace model_builder{
         return point;
     }
 
-    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
+    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud)
     {
         for (std::vector<joint_prediction_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
         {

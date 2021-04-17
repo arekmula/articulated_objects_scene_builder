@@ -26,7 +26,7 @@ namespace model_builder{
             std::cout << "\nNew point cloud to process!" << std::endl;
             // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
             pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
             pcl_output_cloud->header = pcl_cloud_to_process.header;
 
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
@@ -58,7 +58,7 @@ namespace model_builder{
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_cloud_to_process);
-        front_prediction.processPrediction(pcl_output_cloud);
+        front_prediction.processPrediction(pcl_output_cloud, true);
         is_waiting_for_front_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -77,7 +77,7 @@ namespace model_builder{
                                              handler_detection->scores,
                                              handler_detection->masks,
                                              pcl_cloud_to_process);
-        handler_prediction.processPrediction(pcl_output_cloud);
+        handler_prediction.processPrediction(pcl_output_cloud, false);
         is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
