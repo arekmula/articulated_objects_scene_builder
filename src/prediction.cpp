@@ -1,6 +1,12 @@
 #include "../include/model_builder/prediction.hpp"
 #include <pcl/filters/extract_indices.h>
+
+
+#include <pcl/common/common_headers.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
+
+
 
 namespace model_builder{
 
@@ -111,7 +117,7 @@ namespace model_builder{
                                             pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
                                             double radius)
     {
-        pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+        pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne(4);
         ne.setInputCloud(input_cloud);
 
         pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -158,7 +164,7 @@ namespace model_builder{
             // Find normal to plane
             pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
-                findNormalToPlane(plane_cloud, cloud_normals, 0.03);
+                findNormalToPlane(plane_cloud, cloud_normals, 0.05);
 
             // Color the detected plane according to its class id
             for (auto &point: plane_cloud->points)
