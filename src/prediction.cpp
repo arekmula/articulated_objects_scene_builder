@@ -1,7 +1,5 @@
 #include "../include/model_builder/prediction.hpp"
 #include <pcl/filters/extract_indices.h>
-
-
 #include <pcl/common/common_headers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/normal_3d_omp.h>
@@ -115,17 +113,41 @@ namespace model_builder{
 
     void Prediction::findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
                                             pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
-                                            double radius)
+                                            double radius, int threads_number, int resize_factor)
     {
-        pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne(4);
+
+        if ((resize_factor % 2) != 0)
+            resize_factor = resize_factor + 1;
+
+        pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne(threads_number);
         ne.setInputCloud(input_cloud);
+
+        // Find normal to plane only in part of the cloud
+        std::vector<int> indices;
+        for (int i=int(int(resize_factor/2 - 1) *input_cloud->size()/resize_factor);
+             i<(int(int(resize_factor/2 + 1) *input_cloud->size()/resize_factor));
+             i++)
+        {
+            indices.push_back(i);
+        }
+        pcl::IndicesPtr indices_ptr(new std::vector<int> (indices));
+        ne.setIndices(indices_ptr);
+        // Temporary point cloud to store normals for indices
+        pcl::PointCloud<pcl::Normal>::Ptr temp_cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
         pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
         ne.setSearchMethod(tree);
 
         ne.setRadiusSearch(radius);
 
-        ne.compute(*cloud_normals);
+        ne.compute(*temp_cloud_normals);
+
+        // Fill output cloud normals with normals from cloud indices
+        for (int i=0; i<temp_cloud_normals->size(); i++)
+        {
+            int indice = indices[i];
+            cloud_normals->points[indice] = temp_cloud_normals->points[i];
+        }
     }
 
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud,
@@ -163,6 +185,8 @@ namespace model_builder{
 
             // Find normal to plane
             pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+            // Resize cloud normals to match plane_cloud size
+            cloud_normals->resize(plane_cloud->height * plane_cloud->width);
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
                 findNormalToPlane(plane_cloud, cloud_normals, 0.05);
 

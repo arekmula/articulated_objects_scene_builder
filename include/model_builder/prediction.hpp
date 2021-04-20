@@ -85,9 +85,17 @@ protected:
                    pcl::SacModel model_type, const int method_type, float distance_threshold,
                    pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients);
 
+    /**
+     * @brief findNormalToPlane - finds normals in input cloud
+     * @param input_cloud - input cloud
+     * @param cloud_normals - output cloud with normals
+     * @param radius - radius
+     * @param threads_number - number of threads used to compute normals
+     * @param resize_factor - input cloud resize factor
+     */
     void findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
                            pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
-                           double radius);
+                           double radius, int threads_number=4, int resize_factor=16);
 
     struct prediction_color{
         int r;
