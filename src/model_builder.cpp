@@ -1,6 +1,5 @@
 // Package specific includes
 #include "../include/model_builder/model_builder.hpp"
-#include "../include/model_builder/prediction.hpp"
 
 // ROS specific includes
 #include <geometry_msgs/Point.h>
@@ -19,6 +18,9 @@ namespace model_builder{
 
         // Create a ROS publisher for the marker array of normals of the trans fronts
         trans_fronts_normals_pub = node_handle.advertise<visualization_msgs::MarkerArray>("trans_fronts_normals", 1000);
+
+        // Create a ROS publisher for the marker array of rotational fronts joints
+        rot_fronts_joints_pub = node_handle.advertise<visualization_msgs::MarkerArray>("rot_fronts_joints", 1000);
 
         // Create a ROS publisher for the image generated from point cloud
         image_from_pcl_pub = node_handle.advertise<sensor_msgs::Image>("image_to_process", 1000);
@@ -47,6 +49,10 @@ namespace model_builder{
             // Clear array of translational points and its marker array
             trans_fronts_points.clear();
             trans_fronts_normal_marker_array.reset(new visualization_msgs::MarkerArray);
+
+            // Clear array of rotational fronts joints and its marker array
+            joint_real_coordinates.clear();
+            rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
 
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
             sensor_msgs::Image rgb_image;
@@ -82,7 +88,8 @@ namespace model_builder{
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishMarkerArray();
+            fillAndPublishNormalsMarkerArray();
+            fillAndPublishJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -102,7 +109,8 @@ namespace model_builder{
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishMarkerArray();
+            fillAndPublishNormalsMarkerArray();
+            fillAndPublishJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -116,12 +124,14 @@ namespace model_builder{
                                          joint_detection->x2,
                                          joint_detection->y2,
                                          pcl_cloud_to_process);
-        joint_prediction.processPrediction(pcl_output_cloud);
+
+        joint_prediction.processPrediction(pcl_output_cloud, joint_real_coordinates);
         is_waiting_for_joint_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishMarkerArray();
+            fillAndPublishNormalsMarkerArray();
+            fillAndPublishJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -149,7 +159,7 @@ namespace model_builder{
         post_processed_point_cloud_pub.publish(output_point_cloud);
     }
 
-    void ModelBuilder::fillAndPublishMarkerArray()
+    void ModelBuilder::fillAndPublishNormalsMarkerArray()
     {
         int current_marker_id = 0;
         for (auto normal = trans_fronts_points.begin(); normal!=trans_fronts_points.end(); ++normal)
@@ -187,5 +197,43 @@ namespace model_builder{
         }
 
         trans_fronts_normals_pub.publish(trans_fronts_normal_marker_array);
+    }
+
+    void ModelBuilder::fillAndPublishJointsMarkerArray()
+    {
+        int current_marker_id = 0;
+        for (auto joint = joint_real_coordinates.begin(); joint!=joint_real_coordinates.end(); ++joint)
+        {
+            geometry_msgs::Point p1;
+            p1.x = joint->bottom_point.x;
+            p1.y = joint->bottom_point.y;
+            p1.z = joint->bottom_point.z;
+
+            geometry_msgs::Point p2;
+            p2.x = joint->top_point.x;
+            p2.y = joint->top_point.y;
+            p2.z = joint->top_point.z;
+
+            visualization_msgs::Marker current_marker;
+            current_marker.header = current_header;
+            current_marker.type = visualization_msgs::Marker::LINE_STRIP;
+            current_marker.action = visualization_msgs::Marker::ADD;
+            current_marker.id = current_marker_id;
+            current_marker.color.a = 1.0;
+            current_marker.color.r = 0.0;
+            current_marker.color.g = 1.0;
+            current_marker.color.b = 1.0;
+
+            current_marker.scale.x = ARROW_SHAFT_DIAMETER;
+
+            current_marker.points.push_back(p1);
+            current_marker.points.push_back(p2);
+
+            rot_fronts_joints_marker_array->markers.push_back(current_marker);
+
+            current_marker_id++;
+        }
+
+        rot_fronts_joints_pub.publish(rot_fronts_joints_marker_array);
     }
 }

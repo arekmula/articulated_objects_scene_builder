@@ -13,11 +13,16 @@
 
 namespace model_builder {
 
-struct joint_prediction_vertices{
+struct joint_prediction_image_vertices{
     int32_t x1;
     int32_t y1;
     int32_t x2;
     int32_t y2;
+};
+
+struct joint_coordinates{
+    pcl::PointXYZRGB top_point;
+    pcl::PointXYZRGB bottom_point;
 };
 
 class Prediction
@@ -210,7 +215,7 @@ public:
 class JointPrediction{
 
 private:
-    std::vector<joint_prediction_vertices> predictions;
+    std::vector<joint_prediction_image_vertices> predictions;
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
 
     /**
@@ -235,7 +240,8 @@ public:
      * @brief processPrediction - process joint prediction
      * @param output_cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
+                           std::vector<joint_coordinates> &real_coordinates);
 };
 
 }

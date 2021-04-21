@@ -9,6 +9,7 @@
 #include <pcl/point_types.h>
 
 // Package specific includes
+#include "../include/model_builder/prediction.hpp"
 #include "detection_msgs/FrontPrediction.h"
 #include "detection_msgs/HandlerPrediction.h"
 #include "detection_msgs/JointPrediction.h"
@@ -42,6 +43,10 @@ private:
      */
     ros::Publisher trans_fronts_normals_pub;
     /**
+     * @brief rot_fronts_joints_pub - publisher for marker arrray containing rotational fronts joints
+     */
+    ros::Publisher rot_fronts_joints_pub;
+    /**
      * @brief pcl_cloud_to_process - point cloud that needs to be processed
      */
     pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_to_process;
@@ -58,9 +63,18 @@ private:
      */
     std::vector<pcl::PointXYZRGBNormal> trans_fronts_points;
     /**
-     * @brief normal_marker_array
+     * @brief trans_fronts_normal_marker_array - marker array containing markers of normals
      */
     visualization_msgs::MarkerArray::Ptr trans_fronts_normal_marker_array;
+    /**
+     * @brief joint_real_coordinates - list of coordinates of predicted joints
+     */
+    std::vector<joint_coordinates> joint_real_coordinates;
+
+    /**
+     * @brief rot_fronts_joints_marker_array - marker array containing markers of rot fronts joins
+     */
+    visualization_msgs::MarkerArray::Ptr rot_fronts_joints_marker_array;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
@@ -86,9 +100,11 @@ private:
     void publishProcessedPointCloud();
 
     /**
-     * @brief fillAndPublishMarkerArray - fills marker array of translational joints normals
+     * @brief fillAndPublishNormalsMarkerArray - fills marker array of translational joints normals
      */
-    void fillAndPublishMarkerArray();
+    void fillAndPublishNormalsMarkerArray();
+
+    void fillAndPublishJointsMarkerArray();
 
 public:
 

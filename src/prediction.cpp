@@ -283,7 +283,7 @@ namespace model_builder{
     {
         for (int i=0; i<in_x1.size(); i++)
         {
-            joint_prediction_vertices prediction = {};
+            joint_prediction_image_vertices prediction = {};
             prediction.x1 = in_x1[i];
             prediction.y1 = in_y1[i];
             prediction.x2 = in_x2[i];
@@ -326,28 +326,22 @@ namespace model_builder{
         return point;
     }
 
-    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
+    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
+                                            std::vector<joint_coordinates> &real_coordinates)
     {
-        for (std::vector<joint_prediction_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
+        for (std::vector<joint_prediction_image_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
         {
+            joint_coordinates current_real_coordinates;
+
             int x1 = it->x1;
             int y1 = it->y1;
-            pcl::PointXYZRGB top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
+            current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
 
             int x2 = it->x2;
             int y2 = it->y2;
-            pcl::PointXYZRGB bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+            current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
 
-            for (auto &point: output_cloud->points)
-            {
-                if (point.x > bottom_point.x && point.y > bottom_point.y
-                        && point.x < top_point.x+0.01 && point.y < top_point.y+0.01)
-                {
-                        point.r = 255;
-                        point.g = 255;
-                        point.b = 0;
-                }
-            }
+            real_coordinates.push_back(current_real_coordinates);
         }
     }
 }
