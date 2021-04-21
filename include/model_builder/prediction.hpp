@@ -94,8 +94,11 @@ protected:
      * @param resize_factor - input cloud resize factor
      */
     void findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
-                           pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                           pcl::PointXYZRGBNormal *normal_line_points,
                            double radius, int threads_number=4, int resize_factor=16);
+
+    void computeAverageNormalVector(pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                                    float (&normal)[3]);
 
     struct prediction_color{
         int r;
@@ -122,7 +125,8 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud, bool should_find_normal);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud, bool should_find_normal,
+                           std::vector<pcl::PointXYZRGBNormal> &trans_normals_points);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
 

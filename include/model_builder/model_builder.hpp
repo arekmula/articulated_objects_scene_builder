@@ -1,9 +1,14 @@
-// PCL specific includes
+// ROS specific includes
 #include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/Header.h>
+
+// PCL specific includes
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+// Package specific includes
 #include "detection_msgs/FrontPrediction.h"
 #include "detection_msgs/HandlerPrediction.h"
 #include "detection_msgs/JointPrediction.h"
@@ -11,21 +16,51 @@
 namespace model_builder
 {
 
+float ARROW_SHAFT_DIAMETER = 0.02;
+float ARROW_HEAD_DIAMETER = 0.02;
+float ARROW_HEAD_LENGTH = 0.02;
+
 class ModelBuilder
 {
 
 private:
     /**
-     * @brief cur_processing_point_cloud - currently processing point cloud
+     * @brief cur_processing_point_cloud_pub - publisher for currently processing point cloud
      */
-    ros::Publisher cur_processing_point_cloud;
+    ros::Publisher cur_processing_point_cloud_pub;
     /**
-     * @brief post_processed_point_cloud - post processed point cloud
+     * @brief image_from_pcl_pub - publisher for RGB image obtained from currently processed point cloud
      */
-    ros::Publisher post_processed_point_cloud;
     ros::Publisher image_from_pcl_pub;
+
+    /**
+     * @brief post_processed_point_cloud_pub - publisher for post processed point cloud
+     */
+    ros::Publisher post_processed_point_cloud_pub;
+    /**
+     * @brief trans_fronts_normals_pub - publisher for marker array containing translational joints normals
+     */
+    ros::Publisher trans_fronts_normals_pub;
+    /**
+     * @brief pcl_cloud_to_process - point cloud that needs to be processed
+     */
     pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_to_process;
+    /**
+     * @brief pcl_output_cloud - post processed output cloud
+     */
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pcl_output_cloud;
+    /**
+     * @brief current_header - header of the currently processed point cloud
+     */
+    std_msgs::Header current_header;
+    /**
+     * @brief trans_fronts_points - vector of points containing translational point and its normal
+     */
+    std::vector<pcl::PointXYZRGBNormal> trans_fronts_points;
+    /**
+     * @brief normal_marker_array
+     */
+    visualization_msgs::MarkerArray::Ptr trans_fronts_normal_marker_array;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
@@ -49,6 +84,11 @@ private:
      * @brief publishProcessedPointCloud - publish processed point cloud
      */
     void publishProcessedPointCloud();
+
+    /**
+     * @brief fillAndPublishMarkerArray - fills marker array of translational joints normals
+     */
+    void fillAndPublishMarkerArray();
 
 public:
 

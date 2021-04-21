@@ -111,8 +111,36 @@ namespace model_builder{
         return color;
     }
 
+    void Prediction::computeAverageNormalVector(pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                                                float (&normal)[3])
+    {
+        double nx = 0;
+        double ny = 0;
+        double nz = 0;
+        for (int i=0; i<cloud_normals->size(); i++)
+        {
+            nx += cloud_normals->points[i].normal_x;
+            ny += cloud_normals->points[i].normal_y;
+            nz += cloud_normals->points[i].normal_z;
+        }
+
+        nx = float(nx / float(cloud_normals->size()));
+        ny = float(ny / float(cloud_normals->size()));
+        nz = float(nz / float(cloud_normals->size()));
+
+        // Make sure that vector is normal
+        float vector_length = pow(pow(nx, 2.0) + pow(ny, 2.0) + pow(nz, 2.0), 0.5);
+        nx = nx / vector_length;
+        ny = ny / vector_length;
+        nz = nz / vector_length;
+
+        normal[0] = nx;
+        normal[1] = ny;
+        normal[2] = nz;
+    }
+
     void Prediction::findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
-                                            pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                                            pcl::PointXYZRGBNormal *normal_line_points,
                                             double radius, int threads_number, int resize_factor)
     {
 
@@ -132,6 +160,7 @@ namespace model_builder{
         }
         pcl::IndicesPtr indices_ptr(new std::vector<int> (indices));
         ne.setIndices(indices_ptr);
+
         // Temporary point cloud to store normals for indices
         pcl::PointCloud<pcl::Normal>::Ptr temp_cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
@@ -142,19 +171,20 @@ namespace model_builder{
 
         ne.compute(*temp_cloud_normals);
 
-        // Fill output cloud normals with normals from cloud indices
-        for (int i=0; i<temp_cloud_normals->size(); i++)
-        {
-            int indice = indices[i];
-            cloud_normals->points[indice] = temp_cloud_normals->points[i];
-        }
+        // Get coordinates of middle point of selected cloud
+        normal_line_points->x = input_cloud->points[int(input_cloud->size()/2)].x;
+        normal_line_points->y = input_cloud->points[int(input_cloud->size()/2)].y;
+        normal_line_points->z = input_cloud->points[int(input_cloud->size()/2)].z;
+
+        // Compute average normal vector
+        computeAverageNormalVector(temp_cloud_normals, normal_line_points->normal);
     }
 
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud,
-                                       bool should_find_normal)
+                                       bool should_find_normal,
+                                       std::vector<pcl::PointXYZRGBNormal> &trans_normals_points)
     {
 
-        uint8_t HANDLER_BLUE_COLOR=255;
         uint8_t prediction_number = 0;
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
         {
@@ -188,8 +218,14 @@ namespace model_builder{
             // Resize cloud normals to match plane_cloud size
             cloud_normals->resize(plane_cloud->height * plane_cloud->width);
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
-                findNormalToPlane(plane_cloud, cloud_normals, 0.05);
-
+            {
+                pcl::PointXYZRGBNormal normal_to_plane;
+                findNormalToPlane(plane_cloud, &normal_to_plane, 0.05);
+                normal_to_plane.r = color.r;
+                normal_to_plane.g = color.g;
+                normal_to_plane.b = color.b;
+                trans_normals_points.push_back(normal_to_plane);
+            }
             // Color the detected plane according to its class id
             for (auto &point: plane_cloud->points)
             {
