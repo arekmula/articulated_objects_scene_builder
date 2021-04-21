@@ -97,6 +97,11 @@ protected:
                            pcl::PointXYZRGBNormal *normal_line_points,
                            double radius, int threads_number=4, int resize_factor=16);
 
+    /**
+     * @brief computeAverageNormalVector - computes average normal vector based on input normals
+     * @param cloud_normals - cloud containing input normals
+     * @param normal - output normals
+     */
     void computeAverageNormalVector(pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
                                     float (&normal)[3]);
 
@@ -125,7 +130,7 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud, bool should_find_normal,
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud, bool should_find_normal,
                            std::vector<pcl::PointXYZRGBNormal> &trans_normals_points);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
@@ -230,7 +235,7 @@ public:
      * @brief processPrediction - process joint prediction
      * @param output_cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
 };
 
 }

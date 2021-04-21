@@ -38,7 +38,7 @@ namespace model_builder{
 
             // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
             pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
             pcl_output_cloud->header = pcl_cloud_to_process.header;
 
             // Save current input cloud header for later usage

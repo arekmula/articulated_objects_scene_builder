@@ -48,7 +48,7 @@ private:
     /**
      * @brief pcl_output_cloud - post processed output cloud
      */
-    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pcl_output_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_output_cloud;
     /**
      * @brief current_header - header of the currently processed point cloud
      */
