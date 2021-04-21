@@ -215,12 +215,15 @@ namespace model_builder{
             // Find normal to plane if detected front is translational
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
             {
-                pcl::PointXYZRGBNormal normal_to_plane;
-                findNormalToPlane(plane_cloud, &normal_to_plane, 0.05);
-                normal_to_plane.r = color.r;
-                normal_to_plane.g = color.g;
-                normal_to_plane.b = color.b;
-                trans_normals_points.push_back(normal_to_plane);
+                if (plane_cloud->size() > 0)
+                {
+                    pcl::PointXYZRGBNormal normal_to_plane;
+                    findNormalToPlane(plane_cloud, &normal_to_plane, 0.05);
+                    normal_to_plane.r = color.r;
+                    normal_to_plane.g = color.g;
+                    normal_to_plane.b = color.b;
+                    trans_normals_points.push_back(normal_to_plane);
+                }
             }
 
             // Color the detected plane according to its class id
