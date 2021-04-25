@@ -16,6 +16,9 @@ namespace model_builder{
         // Create a ROS publisher for the post processed point cloud
         post_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
 
+        // Create a ROS publisher for the last processed point cloud
+        last_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("last_processed_point_cloud", 1000);
+
         // Create a ROS publisher for the marker array of normals of the trans fronts
         trans_fronts_normals_pub = node_handle.advertise<visualization_msgs::MarkerArray>("trans_fronts_normals", 1000);
 
@@ -159,9 +162,13 @@ namespace model_builder{
     void ModelBuilder::publishProcessedPointCloud()
     {
         std::cout << "*****************Publishing processed point cloud*******************" << std::endl;
-        sensor_msgs::PointCloud2 output_point_cloud;
-        pcl::toROSMsg(*pcl_output_cloud, output_point_cloud);
-        post_processed_point_cloud_pub.publish(output_point_cloud);
+        sensor_msgs::PointCloud2 post_processed_point_cloud;
+        pcl::toROSMsg(*pcl_output_cloud, post_processed_point_cloud);
+        post_processed_point_cloud_pub.publish(post_processed_point_cloud);
+
+        sensor_msgs::PointCloud2 last_processed_point_cloud;
+        pcl::toROSMsg(pcl_cloud_to_process, last_processed_point_cloud);
+        last_processed_point_cloud_pub.publish(last_processed_point_cloud);
     }
 
     void ModelBuilder::fillAndPublishNormalsMarkerArray()

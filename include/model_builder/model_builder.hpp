@@ -39,6 +39,10 @@ private:
      */
     ros::Publisher post_processed_point_cloud_pub;
     /**
+     * @brief last_processed_point_cloud_pub - last processed point cloud
+     */
+    ros::Publisher last_processed_point_cloud_pub;
+    /**
      * @brief trans_fronts_normals_pub - publisher for marker array containing translational joints normals
      */
     ros::Publisher trans_fronts_normals_pub;
