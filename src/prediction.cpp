@@ -358,9 +358,11 @@ namespace model_builder{
         std::vector<float> nearestPointSquaredDistances(K);
 
         kdtree.nearestKSearch(input_point, K, nearestPointIndices, nearestPointSquaredDistances);
-
-        if (nearestPointIndices.size() < 0)
+        if (nearestPointIndices.size() < 0 || nearestPointIndices[0] > input_cloud->size() ||
+                nearestPointIndices[0] < 0)
         {
+            std::cout << "Failed to find nearest point to " << input_point << std::endl;
+            // TODO: Add some handling if nearest point couldn't be found
             return false;
         }
         else
@@ -379,14 +381,12 @@ namespace model_builder{
         {
             joint_coordinates current_real_coordinates;
 
-
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr front_cloud;
             front_cloud = front_separeted_clouds[it->front_index];
 
             int x1 = it->x1;
             int y1 = it->y1;
             current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
-
             int indice = -1;
             bool result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.top_point, &indice);
             if (result)
@@ -401,7 +401,6 @@ namespace model_builder{
             int x2 = it->x2;
             int y2 = it->y2;
             current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
-
             result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.bottom_point, &indice);
             if (result)
             {
