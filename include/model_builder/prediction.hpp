@@ -18,6 +18,7 @@ struct joint_prediction_image_vertices{
     int32_t y1;
     int32_t x2;
     int32_t y2;
+    int32_t front_index;
 };
 
 struct joint_coordinates{
@@ -136,7 +137,8 @@ public:
      * @brief processPrediction - processing prediction on point cloud
      */
     void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud, bool should_find_normal,
-                           std::vector<pcl::PointXYZRGBNormal> &trans_normals_points);
+                           std::vector<pcl::PointXYZRGBNormal> &trans_normals_points, bool save_separate_clouds,
+                           std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
 
@@ -224,7 +226,21 @@ private:
      * @param y - y image coordinate
      * @return point containing real coordinates
      */
-    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
+    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x,
+                                                             int y);
+
+    /**
+     * @brief findClosestPointInCurrentCloud - finds closest point to the input point that exists in the input_cloud
+     * @param input_cloud - cloud in which look for
+     * @param input_point - point which needs to be found
+     * @param output_point_indice - indice of input_cloud that stores closest point
+     * @param K - number of points to be found
+     * @return true if point found
+     */
+    bool findClosestPointInCurrentCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                        pcl::PointXYZRGB input_point,
+                                        int *output_point_indice,
+                                        int K=1);
 
 public:
 
@@ -232,15 +248,17 @@ public:
                     std::vector<int32_t> in_y1,
                     std::vector<int32_t> in_x2,
                     std::vector<int32_t> in_y2,
+                    std::vector<int32_t> in_front_index,
                     pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
     ~JointPrediction();
 
     /**
      * @brief processPrediction - process joint prediction
-     * @param output_cloud
+     * @param front_separeted_clouds - vector of front clouds
+     * @param real_coordinates - output top and bottom coordinate of predicted joint
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
+    void processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
                            std::vector<joint_coordinates> &real_coordinates);
 };
 

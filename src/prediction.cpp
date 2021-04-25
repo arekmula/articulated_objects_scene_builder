@@ -95,8 +95,8 @@ namespace model_builder{
     }
 
     void Prediction::extractCloudFromIndices(pcl::PointIndices::Ptr indices,
-                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
-                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
+                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
     {
         pcl::ExtractIndices<pcl::PointXYZRGB> extract;
         extract.setInputCloud(input_cloud);
@@ -182,7 +182,9 @@ namespace model_builder{
 
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
                                        bool should_find_normal,
-                                       std::vector<pcl::PointXYZRGBNormal> &trans_normals_points)
+                                       std::vector<pcl::PointXYZRGBNormal> &trans_normals_points,
+                                       bool save_separate_clouds,
+                                       std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds)
     {
         uint8_t prediction_number = 0;
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
@@ -235,6 +237,20 @@ namespace model_builder{
             }
             *output_cloud+=*plane_cloud;
 
+            if (save_separate_clouds)
+            {
+                if (class_id == FrontPrediction::TRANS_FRONT)
+                {
+                    // Save empty cloud of transitional front only for index matching
+                    plane_cloud.reset();
+                    fronts_point_clouds.push_back(plane_cloud);
+                }
+                else if (class_id == FrontPrediction::ROT_FRONT)
+                {
+                    fronts_point_clouds.push_back(plane_cloud);
+                }
+            }
+
             prediction_number++;
         }
     }
@@ -282,6 +298,7 @@ namespace model_builder{
 
     JointPrediction::JointPrediction (std::vector<int32_t> in_x1, std::vector<int32_t> in_y1,
                                       std::vector<int32_t> in_x2, std::vector<int32_t> in_y2,
+                                      std::vector<int32_t> in_front_index,
                                       pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
     {
         for (int i=0; i<in_x1.size(); i++)
@@ -291,6 +308,7 @@ namespace model_builder{
             prediction.y1 = in_y1[i];
             prediction.x2 = in_x2[i];
             prediction.y2 = in_y2[i];
+            prediction.front_index = in_front_index[i];
 
             predictions.push_back(prediction);
         }
@@ -307,7 +325,6 @@ namespace model_builder{
     pcl::PointXYZRGB JointPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
     {
         pcl::PointXYZRGB point = cloud(x, y);
-
         // If point not existing in point cloud, find nearest one
         int loop_count = 1;
         while (isnan(point.x))
@@ -329,20 +346,71 @@ namespace model_builder{
         return point;
     }
 
-    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
+    bool JointPrediction::findClosestPointInCurrentCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                                         pcl::PointXYZRGB input_point,
+                                                         int *output_point_indice,
+                                                         int K)
+    {
+        pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+        kdtree.setInputCloud(input_cloud);
+
+        std::vector<int> nearestPointIndices(K);
+        std::vector<float> nearestPointSquaredDistances(K);
+
+        kdtree.nearestKSearch(input_point, K, nearestPointIndices, nearestPointSquaredDistances);
+
+        if (nearestPointIndices.size() < 0)
+        {
+            return false;
+        }
+        else
+        {
+            *output_point_indice = nearestPointIndices[0];
+            return true;
+        }
+    }
+
+    void JointPrediction::processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
                                             std::vector<joint_coordinates> &real_coordinates)
     {
-        for (std::vector<joint_prediction_image_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
+        for (std::vector<joint_prediction_image_vertices>::iterator it = predictions.begin();
+             it != predictions.end();
+             ++it)
         {
             joint_coordinates current_real_coordinates;
+
+
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr front_cloud;
+            front_cloud = front_separeted_clouds[it->front_index];
 
             int x1 = it->x1;
             int y1 = it->y1;
             current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
 
+            int indice = -1;
+            bool result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.top_point, &indice);
+            if (result)
+            {
+                current_real_coordinates.top_point.x = (*front_cloud)[indice].x;
+                current_real_coordinates.top_point.y = (*front_cloud)[indice].y;
+                current_real_coordinates.top_point.z = (*front_cloud)[indice].z;
+            }
+            else
+                return;
+
             int x2 = it->x2;
             int y2 = it->y2;
             current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+
+            result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.bottom_point, &indice);
+            if (result)
+            {
+                current_real_coordinates.bottom_point.x = (*front_cloud)[indice].x;
+                current_real_coordinates.bottom_point.y = (*front_cloud)[indice].y;
+                current_real_coordinates.bottom_point.z = (*front_cloud)[indice].z;
+            }
+            else
+                return;
 
             real_coordinates.push_back(current_real_coordinates);
         }

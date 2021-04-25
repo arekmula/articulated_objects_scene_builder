@@ -54,6 +54,9 @@ namespace model_builder{
             joint_real_coordinates.clear();
             rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
 
+            // Clear vector of separated front clouds
+            fronts_point_clouds.clear();
+
             // Get RGB image from PointCloud and publish it so other nodes can generate predictions
             sensor_msgs::Image rgb_image;
             pcl::toROSMsg(pcl_cloud_to_process, rgb_image);
@@ -83,7 +86,7 @@ namespace model_builder{
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_cloud_to_process);
-        front_prediction.processPrediction(pcl_output_cloud, true, trans_fronts_points);
+        front_prediction.processPrediction(pcl_output_cloud, true, trans_fronts_points, true, fronts_point_clouds);
         is_waiting_for_front_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -104,7 +107,9 @@ namespace model_builder{
                                              handler_detection->scores,
                                              handler_detection->masks,
                                              pcl_cloud_to_process);
-        handler_prediction.processPrediction(pcl_output_cloud, false, trans_fronts_points);
+
+        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> blank_cloud;
+        handler_prediction.processPrediction(pcl_output_cloud, false, trans_fronts_points, false, blank_cloud);
         is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -123,9 +128,9 @@ namespace model_builder{
                                          joint_detection->y1,
                                          joint_detection->x2,
                                          joint_detection->y2,
+                                         joint_detection->front_prediction_index,
                                          pcl_cloud_to_process);
-
-        joint_prediction.processPrediction(pcl_output_cloud, joint_real_coordinates);
+        joint_prediction.processPrediction(fronts_point_clouds, joint_real_coordinates);
         is_waiting_for_joint_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())

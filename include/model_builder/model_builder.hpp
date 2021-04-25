@@ -71,6 +71,8 @@ private:
      */
     std::vector<joint_coordinates> joint_real_coordinates;
 
+    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> fronts_point_clouds;
+
     /**
      * @brief rot_fronts_joints_marker_array - marker array containing markers of rot fronts joins
      */
