@@ -352,6 +352,8 @@ namespace model_builder{
                                                          int K)
     {
         pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+        if (input_cloud->empty())
+            return false;
         kdtree.setInputCloud(input_cloud);
 
         std::vector<int> nearestPointIndices(K);
