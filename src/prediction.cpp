@@ -95,8 +95,8 @@ namespace model_builder{
     }
 
     void Prediction::extractCloudFromIndices(pcl::PointIndices::Ptr indices,
-                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
-                                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
+                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud)
     {
         pcl::ExtractIndices<pcl::PointXYZRGB> extract;
         extract.setInputCloud(input_cloud);
@@ -182,7 +182,9 @@ namespace model_builder{
 
     void Prediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
                                        bool should_find_normal,
-                                       std::vector<pcl::PointXYZRGBNormal> &trans_normals_points)
+                                       std::vector<pcl::PointXYZRGBNormal> &trans_normals_points,
+                                       bool save_separate_clouds,
+                                       std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds)
     {
         uint8_t prediction_number = 0;
         for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
@@ -215,12 +217,15 @@ namespace model_builder{
             // Find normal to plane if detected front is translational
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
             {
-                pcl::PointXYZRGBNormal normal_to_plane;
-                findNormalToPlane(plane_cloud, &normal_to_plane, 0.05);
-                normal_to_plane.r = color.r;
-                normal_to_plane.g = color.g;
-                normal_to_plane.b = color.b;
-                trans_normals_points.push_back(normal_to_plane);
+                if (plane_cloud->size() > 0)
+                {
+                    pcl::PointXYZRGBNormal normal_to_plane;
+                    findNormalToPlane(plane_cloud, &normal_to_plane, 0.05);
+                    normal_to_plane.r = color.r;
+                    normal_to_plane.g = color.g;
+                    normal_to_plane.b = color.b;
+                    trans_normals_points.push_back(normal_to_plane);
+                }
             }
 
             // Color the detected plane according to its class id
@@ -231,6 +236,20 @@ namespace model_builder{
                 point.b = color.b;
             }
             *output_cloud+=*plane_cloud;
+
+            if (save_separate_clouds)
+            {
+                if (class_id == FrontPrediction::TRANS_FRONT)
+                {
+                    // Save empty cloud of transitional front only for index matching
+                    plane_cloud.reset();
+                    fronts_point_clouds.push_back(plane_cloud);
+                }
+                else if (class_id == FrontPrediction::ROT_FRONT)
+                {
+                    fronts_point_clouds.push_back(plane_cloud);
+                }
+            }
 
             prediction_number++;
         }
@@ -279,15 +298,17 @@ namespace model_builder{
 
     JointPrediction::JointPrediction (std::vector<int32_t> in_x1, std::vector<int32_t> in_y1,
                                       std::vector<int32_t> in_x2, std::vector<int32_t> in_y2,
+                                      std::vector<int32_t> in_front_index,
                                       pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
     {
         for (int i=0; i<in_x1.size(); i++)
         {
-            joint_prediction_vertices prediction = {};
+            rot_joint_prediction_image_vertices prediction = {};
             prediction.x1 = in_x1[i];
             prediction.y1 = in_y1[i];
             prediction.x2 = in_x2[i];
             prediction.y2 = in_y2[i];
+            prediction.front_index = in_front_index[i];
 
             predictions.push_back(prediction);
         }
@@ -304,7 +325,6 @@ namespace model_builder{
     pcl::PointXYZRGB JointPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
     {
         pcl::PointXYZRGB point = cloud(x, y);
-
         // If point not existing in point cloud, find nearest one
         int loop_count = 1;
         while (isnan(point.x))
@@ -326,28 +346,74 @@ namespace model_builder{
         return point;
     }
 
-    void JointPrediction::processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud)
+    bool JointPrediction::findClosestPointInCurrentCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                                         pcl::PointXYZRGB input_point,
+                                                         int *output_point_indice,
+                                                         int K)
     {
-        for (std::vector<joint_prediction_vertices>::iterator it = predictions.begin(); it != predictions.end(); ++it)
+        pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+        if (input_cloud->empty())
+            return false;
+        kdtree.setInputCloud(input_cloud);
+
+        std::vector<int> nearestPointIndices(K);
+        std::vector<float> nearestPointSquaredDistances(K);
+
+        kdtree.nearestKSearch(input_point, K, nearestPointIndices, nearestPointSquaredDistances);
+        if (nearestPointIndices.size() < 0 || nearestPointIndices[0] > input_cloud->size() ||
+                nearestPointIndices[0] < 0)
         {
+            std::cout << "Failed to find nearest point to " << input_point << std::endl;
+            // TODO: Add some handling if nearest point couldn't be found
+            return false;
+        }
+        else
+        {
+            *output_point_indice = nearestPointIndices[0];
+            return true;
+        }
+    }
+
+    void JointPrediction::processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
+                                            std::vector<rot_joint_coordinates> &real_coordinates)
+    {
+        for (std::vector<rot_joint_prediction_image_vertices>::iterator it = predictions.begin();
+             it != predictions.end();
+             ++it)
+        {
+            rot_joint_coordinates current_real_coordinates = {};
+
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr front_cloud;
+            front_cloud = front_separeted_clouds[it->front_index];
+
             int x1 = it->x1;
             int y1 = it->y1;
-            pcl::PointXYZRGB top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
+            current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
+            int indice = -1;
+            bool result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.top_point, &indice);
+            if (result)
+            {
+                current_real_coordinates.top_point.x = (*front_cloud)[indice].x;
+                current_real_coordinates.top_point.y = (*front_cloud)[indice].y;
+                current_real_coordinates.top_point.z = (*front_cloud)[indice].z;
+            }
+            else
+                return;
 
             int x2 = it->x2;
             int y2 = it->y2;
-            pcl::PointXYZRGB bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
-
-            for (auto &point: output_cloud->points)
+            current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+            result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.bottom_point, &indice);
+            if (result)
             {
-                if (point.x > bottom_point.x && point.y > bottom_point.y
-                        && point.x < top_point.x+0.01 && point.y < top_point.y+0.01)
-                {
-                        point.r = 255;
-                        point.g = 255;
-                        point.b = 0;
-                }
+                current_real_coordinates.bottom_point.x = (*front_cloud)[indice].x;
+                current_real_coordinates.bottom_point.y = (*front_cloud)[indice].y;
+                current_real_coordinates.bottom_point.z = (*front_cloud)[indice].z;
             }
+            else
+                return;
+
+            real_coordinates.push_back(current_real_coordinates);
         }
     }
 }

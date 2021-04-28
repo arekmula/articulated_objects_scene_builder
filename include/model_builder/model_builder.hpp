@@ -9,6 +9,7 @@
 #include <pcl/point_types.h>
 
 // Package specific includes
+#include "../include/model_builder/prediction.hpp"
 #include "detection_msgs/FrontPrediction.h"
 #include "detection_msgs/HandlerPrediction.h"
 #include "detection_msgs/JointPrediction.h"
@@ -38,9 +39,17 @@ private:
      */
     ros::Publisher post_processed_point_cloud_pub;
     /**
+     * @brief last_processed_point_cloud_pub - last processed point cloud
+     */
+    ros::Publisher last_processed_point_cloud_pub;
+    /**
      * @brief trans_fronts_normals_pub - publisher for marker array containing translational joints normals
      */
     ros::Publisher trans_fronts_normals_pub;
+    /**
+     * @brief rot_fronts_joints_pub - publisher for marker arrray containing rotational fronts joints
+     */
+    ros::Publisher rot_fronts_joints_pub;
     /**
      * @brief pcl_cloud_to_process - point cloud that needs to be processed
      */
@@ -58,9 +67,23 @@ private:
      */
     std::vector<pcl::PointXYZRGBNormal> trans_fronts_points;
     /**
-     * @brief normal_marker_array
+     * @brief trans_fronts_normal_marker_array - marker array containing markers of normals
      */
     visualization_msgs::MarkerArray::Ptr trans_fronts_normal_marker_array;
+    /**
+     * @brief joint_real_coordinates - list of coordinates of predicted joints
+     */
+    std::vector<rot_joint_coordinates> joint_real_coordinates;
+
+    /**
+     * @brief fronts_point_clouds - vector of separated front clouds. Each cloud is separate cloud of front
+     */
+    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> fronts_point_clouds;
+
+    /**
+     * @brief rot_fronts_joints_marker_array - marker array containing markers of rot fronts joins
+     */
+    visualization_msgs::MarkerArray::Ptr rot_fronts_joints_marker_array;
 
     /**
      * @brief is_waiting_for_front_prediction - Flag indicating that the node is waiting for image to be processed
@@ -86,9 +109,17 @@ private:
     void publishProcessedPointCloud();
 
     /**
-     * @brief fillAndPublishMarkerArray - fills marker array of translational joints normals
+     * @brief fillAndPublishNormalsMarkerArray - fills marker array of translational joints normals
      */
-    void fillAndPublishMarkerArray();
+    void fillAndPublishTransNormalsMarkerArray();
+
+    /**
+     * @brief fillAndPublishJointsMarkerArray - fills marker array of rotational joints
+     */
+    void fillAndPublishRotJointsMarkerArray();
+
+    const std::string trans_normals_namespace = "trans_normals";
+    const std::string rot_joints_namespace = "rot_joints";
 
 public:
 
