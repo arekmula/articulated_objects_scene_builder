@@ -73,8 +73,11 @@ private:
     /**
      * @brief joint_real_coordinates - list of coordinates of predicted joints
      */
-    std::vector<joint_coordinates> joint_real_coordinates;
+    std::vector<rot_joint_coordinates> joint_real_coordinates;
 
+    /**
+     * @brief fronts_point_clouds - vector of separated front clouds. Each cloud is separate cloud of front
+     */
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> fronts_point_clouds;
 
     /**
@@ -108,9 +111,12 @@ private:
     /**
      * @brief fillAndPublishNormalsMarkerArray - fills marker array of translational joints normals
      */
-    void fillAndPublishNormalsMarkerArray();
+    void fillAndPublishTransNormalsMarkerArray();
 
-    void fillAndPublishJointsMarkerArray();
+    /**
+     * @brief fillAndPublishJointsMarkerArray - fills marker array of rotational joints
+     */
+    void fillAndPublishRotJointsMarkerArray();
 
     const std::string trans_normals_namespace = "trans_normals";
     const std::string rot_joints_namespace = "rot_joints";

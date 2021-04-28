@@ -94,8 +94,8 @@ namespace model_builder{
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishNormalsMarkerArray();
-            fillAndPublishJointsMarkerArray();
+            fillAndPublishTransNormalsMarkerArray();
+            fillAndPublishRotJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -117,8 +117,8 @@ namespace model_builder{
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishNormalsMarkerArray();
-            fillAndPublishJointsMarkerArray();
+            fillAndPublishTransNormalsMarkerArray();
+            fillAndPublishRotJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -138,8 +138,8 @@ namespace model_builder{
 
         if (ModelBuilder::isAllPredictionsReady())
         {
-            fillAndPublishNormalsMarkerArray();
-            fillAndPublishJointsMarkerArray();
+            fillAndPublishTransNormalsMarkerArray();
+            fillAndPublishRotJointsMarkerArray();
             publishProcessedPointCloud();
         }
     }
@@ -171,7 +171,7 @@ namespace model_builder{
         last_processed_point_cloud_pub.publish(last_processed_point_cloud);
     }
 
-    void ModelBuilder::fillAndPublishNormalsMarkerArray()
+    void ModelBuilder::fillAndPublishTransNormalsMarkerArray()
     {
 
         // Delete previous marker array
@@ -218,12 +218,10 @@ namespace model_builder{
 
             current_marker_id++;
         }
-
-
         trans_fronts_normals_pub.publish(trans_fronts_normal_marker_array);
     }
 
-    void ModelBuilder::fillAndPublishJointsMarkerArray()
+    void ModelBuilder::fillAndPublishRotJointsMarkerArray()
     {
         // Delete previous marker array
         visualization_msgs::Marker current_marker;

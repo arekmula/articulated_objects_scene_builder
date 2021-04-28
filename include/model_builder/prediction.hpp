@@ -13,7 +13,7 @@
 
 namespace model_builder {
 
-struct joint_prediction_image_vertices{
+struct rot_joint_prediction_image_vertices{
     int32_t x1;
     int32_t y1;
     int32_t x2;
@@ -21,7 +21,7 @@ struct joint_prediction_image_vertices{
     int32_t front_index;
 };
 
-struct joint_coordinates{
+struct rot_joint_coordinates{
     pcl::PointXYZRGB top_point;
     pcl::PointXYZRGB bottom_point;
 };
@@ -217,7 +217,7 @@ public:
 class JointPrediction{
 
 private:
-    std::vector<joint_prediction_image_vertices> predictions;
+    std::vector<rot_joint_prediction_image_vertices> predictions;
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
 
     /**
@@ -254,12 +254,12 @@ public:
     ~JointPrediction();
 
     /**
-     * @brief processPrediction - process joint prediction
+     * @brief processPrediction - process rotational joint prediction
      * @param front_separeted_clouds - vector of front clouds
-     * @param real_coordinates - output top and bottom coordinate of predicted joint
+     * @param real_coordinates - output top and bottom coordinate of predicted rotational joint
      */
     void processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
-                           std::vector<joint_coordinates> &real_coordinates);
+                           std::vector<rot_joint_coordinates> &real_coordinates);
 };
 
 }

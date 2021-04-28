@@ -303,7 +303,7 @@ namespace model_builder{
     {
         for (int i=0; i<in_x1.size(); i++)
         {
-            joint_prediction_image_vertices prediction = {};
+            rot_joint_prediction_image_vertices prediction = {};
             prediction.x1 = in_x1[i];
             prediction.y1 = in_y1[i];
             prediction.x2 = in_x2[i];
@@ -375,13 +375,13 @@ namespace model_builder{
     }
 
     void JointPrediction::processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
-                                            std::vector<joint_coordinates> &real_coordinates)
+                                            std::vector<rot_joint_coordinates> &real_coordinates)
     {
-        for (std::vector<joint_prediction_image_vertices>::iterator it = predictions.begin();
+        for (std::vector<rot_joint_prediction_image_vertices>::iterator it = predictions.begin();
              it != predictions.end();
              ++it)
         {
-            joint_coordinates current_real_coordinates;
+            rot_joint_coordinates current_real_coordinates = {};
 
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr front_cloud;
             front_cloud = front_separeted_clouds[it->front_index];
