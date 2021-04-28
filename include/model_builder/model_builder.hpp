@@ -112,6 +112,9 @@ private:
 
     void fillAndPublishJointsMarkerArray();
 
+    const std::string trans_normals_namespace = "trans_normals";
+    const std::string rot_joints_namespace = "rot_joints";
+
 public:
 
     /**

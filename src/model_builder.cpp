@@ -173,6 +173,16 @@ namespace model_builder{
 
     void ModelBuilder::fillAndPublishNormalsMarkerArray()
     {
+
+        // Delete previous marker array
+        visualization_msgs::Marker current_marker;
+        current_marker.header = current_header;
+        current_marker.type = visualization_msgs::Marker::ARROW;
+        current_marker.action = visualization_msgs::Marker::DELETEALL;
+        current_marker.ns = trans_normals_namespace;
+
+        trans_fronts_normal_marker_array->markers.push_back(current_marker);
+
         int current_marker_id = 0;
         for (auto normal = trans_fronts_points.begin(); normal!=trans_fronts_points.end(); ++normal)
         {
@@ -190,6 +200,7 @@ namespace model_builder{
             current_marker.header = current_header;
             current_marker.type = visualization_msgs::Marker::ARROW;
             current_marker.action = visualization_msgs::Marker::ADD;
+            current_marker.ns = trans_normals_namespace;
             current_marker.id = current_marker_id;
             current_marker.color.a = 1.0;
             current_marker.color.r = float((normal->r) / 255.0);
@@ -208,11 +219,21 @@ namespace model_builder{
             current_marker_id++;
         }
 
+
         trans_fronts_normals_pub.publish(trans_fronts_normal_marker_array);
     }
 
     void ModelBuilder::fillAndPublishJointsMarkerArray()
     {
+        // Delete previous marker array
+        visualization_msgs::Marker current_marker;
+        current_marker.header = current_header;
+        current_marker.type = visualization_msgs::Marker::LINE_STRIP;
+        current_marker.action = visualization_msgs::Marker::DELETEALL;
+        current_marker.ns = rot_joints_namespace;
+
+        rot_fronts_joints_marker_array->markers.push_back(current_marker);
+
         int current_marker_id = 0;
         for (auto joint = joint_real_coordinates.begin(); joint!=joint_real_coordinates.end(); ++joint)
         {
@@ -230,6 +251,7 @@ namespace model_builder{
             current_marker.header = current_header;
             current_marker.type = visualization_msgs::Marker::LINE_STRIP;
             current_marker.action = visualization_msgs::Marker::ADD;
+            current_marker.ns = rot_joints_namespace;
             current_marker.id = current_marker_id;
             current_marker.color.a = 1.0;
             current_marker.color.r = 0.0;
@@ -245,7 +267,6 @@ namespace model_builder{
 
             current_marker_id++;
         }
-
         rot_fronts_joints_pub.publish(rot_fronts_joints_marker_array);
     }
 }
