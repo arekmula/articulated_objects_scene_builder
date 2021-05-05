@@ -18,6 +18,9 @@ struct rot_joint_prediction_image_vertices{
     int32_t y1;
     int32_t x2;
     int32_t y2;
+    int32_t A;
+    int32_t B;
+    int32_t C;
     int32_t front_index;
 };
 
@@ -226,8 +229,7 @@ private:
      * @param y - y image coordinate
      * @return point containing real coordinates
      */
-    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x,
-                                                             int y);
+    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y, int A, int B, int C);
 
     /**
      * @brief findClosestPointInCurrentCloud - finds closest point to the input point that exists in the input_cloud
@@ -249,6 +251,9 @@ public:
                     std::vector<int32_t> in_x2,
                     std::vector<int32_t> in_y2,
                     std::vector<int32_t> in_front_index,
+                    std::vector<int32_t> A,
+                    std::vector<int32_t> B,
+                    std::vector<int32_t> C,
                     pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
     ~JointPrediction();

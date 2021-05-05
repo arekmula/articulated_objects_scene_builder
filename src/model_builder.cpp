@@ -132,6 +132,9 @@ namespace model_builder{
                                          joint_detection->x2,
                                          joint_detection->y2,
                                          joint_detection->front_prediction_index,
+                                         joint_detection->A,
+                                         joint_detection->B,
+                                         joint_detection->C,
                                          pcl_cloud_to_process);
         joint_prediction.processPrediction(fronts_point_clouds, joint_real_coordinates);
         is_waiting_for_joint_prediction = false;

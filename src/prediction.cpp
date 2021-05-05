@@ -3,6 +3,7 @@
 #include <pcl/common/common_headers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/normal_3d_omp.h>
+#include <algorithm>
 
 
 
@@ -208,7 +209,7 @@ namespace model_builder{
             pcl::ModelCoefficients::Ptr plane_coefficients(new pcl::ModelCoefficients);
             pcl::PointIndices::Ptr plane_indices(new pcl::PointIndices);
             findPlane(bounding_box_extracted_cloud, true, pcl::SACMODEL_PLANE, pcl::SAC_RANSAC,
-                      0.01, plane_indices, plane_coefficients);
+                      0.05, plane_indices, plane_coefficients);
 
             // Construct cloud from detected plane
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -299,6 +300,9 @@ namespace model_builder{
     JointPrediction::JointPrediction (std::vector<int32_t> in_x1, std::vector<int32_t> in_y1,
                                       std::vector<int32_t> in_x2, std::vector<int32_t> in_y2,
                                       std::vector<int32_t> in_front_index,
+                                      std::vector<int32_t> A,
+                                      std::vector<int32_t> B,
+                                      std::vector<int32_t> C,
                                       pcl::PointCloud<pcl::PointXYZRGB> in_cloud)
     {
         for (int i=0; i<in_x1.size(); i++)
@@ -308,6 +312,9 @@ namespace model_builder{
             prediction.y1 = in_y1[i];
             prediction.x2 = in_x2[i];
             prediction.y2 = in_y2[i];
+            prediction.A = A[i];
+            prediction.B = B[i];
+            prediction.C = C[i];
             prediction.front_index = in_front_index[i];
 
             predictions.push_back(prediction);
@@ -322,27 +329,54 @@ namespace model_builder{
 
     }
 
-    pcl::PointXYZRGB JointPrediction::findRealCoordinatesFromImageCoordinates(int x, int y)
+    float getPointLineDistance(int x, int y, int A, int B, int C)
+    {
+        float distance_nominator = abs(A * x + B * y + C);
+        float distance_denominator = pow((pow(A, 2) + pow(B, 2)), 0.5);
+
+        return float(distance_nominator/distance_denominator);
+    }
+
+    float getPointToPointDistance(int x1, int y1, int x2, int y2)
+    {
+        return pow((pow((x1 - x2), 2) + pow((y1 - y2), 2)), 0.5);
+    }
+
+    pcl::PointXYZRGB JointPrediction::findRealCoordinatesFromImageCoordinates(int x, int y, int A, int B, int C)
     {
         pcl::PointXYZRGB point = cloud(x, y);
-        // If point not existing in point cloud, find nearest one
-        int loop_count = 1;
-        while (isnan(point.x))
+
+        // If point is NaN, find nearest one that lands on the joint line and is not NaN.
+        if (isnan(point.x))
         {
-            // Values to move. Multiplied by loop_count
-            std::vector<int> dx = { 0, 1, 0, -1 };
-            std::vector<int> dy = { 1, 0, -1, 0 };
-            std::transform(dx.begin(), dx.end(), dx.begin(), std::bind1st(std::multiplies<int>(), loop_count));
-            std::transform(dy.begin(), dy.end(), dy.begin(), std::bind1st(std::multiplies<int>(), loop_count));
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_out_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+            // index the mapping (ordered): cloud_out.points[i] = cloud_in.points[index[i]]
+            std::vector<int> indices_mapping = {};
+            pcl::removeNaNFromPointCloud(cloud, *temp_out_cloud, indices_mapping);
 
-            // TODO: If x+dx[i] or y+dy[i] are out of width or height, abort coordinates
-            for (int i=0; isnan(point.x) && i < 4; ++i)
+            // For each existing point get it projection on the image and calculate the distance from the
+            // point to joint line and from the point to the input image coordinates
+            // Then find the point with minimum distance.
+            std::vector<float> distances = {};
+            for (int i=0; i<temp_out_cloud->size(); i++)
             {
-                point = cloud(x+ dx[i], y + dy[i]);
-            }
-            loop_count++;
-        }
+                int index_in_input_cloud = indices_mapping[i];
+                int temp_x = index_in_input_cloud % cloud.width;  // Get the x and y in image coordinates
+                int temp_y = floor(index_in_input_cloud/cloud.width);
 
+                float distance_point_to_line = getPointLineDistance(temp_x, temp_y, A, B, C);
+                float distance = distance_point_to_line + getPointToPointDistance(x, y, temp_x, temp_y);
+                distances.push_back(distance);
+            }
+
+            int min_distance_index = std::min_element(distances.begin(), distances.end()) - distances.begin();
+            int index_in_input_cloud = indices_mapping[min_distance_index];
+
+            point.x = cloud[index_in_input_cloud].x;
+            point.y = cloud[index_in_input_cloud].y;
+            point.z = cloud[index_in_input_cloud].z;
+
+        }
         return point;
     }
 
@@ -388,7 +422,8 @@ namespace model_builder{
 
             int x1 = it->x1;
             int y1 = it->y1;
-            current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1);
+            current_real_coordinates.top_point = findRealCoordinatesFromImageCoordinates(x1, y1,
+                                                                                         it->A, it->B, it->C);
             int indice = -1;
             bool result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.top_point, &indice);
             if (result)
@@ -402,7 +437,8 @@ namespace model_builder{
 
             int x2 = it->x2;
             int y2 = it->y2;
-            current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2);
+            current_real_coordinates.bottom_point = findRealCoordinatesFromImageCoordinates(x2, y2,
+                                                                                            it->A, it->B, it->C);
             result = findClosestPointInCurrentCloud(front_cloud, current_real_coordinates.bottom_point, &indice);
             if (result)
             {
