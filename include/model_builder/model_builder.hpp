@@ -26,15 +26,6 @@ class ModelBuilder
 
 private:
     /**
-     * @brief cur_processing_point_cloud_pub - publisher for currently processing point cloud
-     */
-    ros::Publisher cur_processing_point_cloud_pub;
-    /**
-     * @brief image_from_pcl_pub - publisher for RGB image obtained from currently processed point cloud
-     */
-    ros::Publisher image_from_pcl_pub;
-
-    /**
      * @brief post_processed_point_cloud_pub - publisher for post processed point cloud
      */
     ros::Publisher post_processed_point_cloud_pub;

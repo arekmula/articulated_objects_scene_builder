@@ -10,8 +10,6 @@ namespace model_builder{
 
     ModelBuilder::ModelBuilder(ros::NodeHandle &node_handle)
     {
-        // Create a ROS publisher for the currently processed point cloud
-        cur_processing_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("currently_processed_point_cloud", 1000);
 
         // Create a ROS publisher for the post processed point cloud
         post_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
@@ -25,8 +23,6 @@ namespace model_builder{
         // Create a ROS publisher for the marker array of rotational fronts joints
         rot_fronts_joints_pub = node_handle.advertise<visualization_msgs::MarkerArray>("rot_fronts_joints", 1000);
 
-        // Create a ROS publisher for the image generated from point cloud
-        image_from_pcl_pub = node_handle.advertise<sensor_msgs::Image>("image_to_process", 1000);
         std::cout << "Started Model builder" << std::endl;
     }
 
@@ -37,36 +33,29 @@ namespace model_builder{
 
     void ModelBuilder::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr &input_point_cloud)
     {
-        if (ModelBuilder::isAllPredictionsReady())
-        {
-            std::cout << "\nNew point cloud to process!" << std::endl;
+        std::cout << "\nNew point cloud to process!" << std::endl;
 
-            // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
-            pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-            pcl_output_cloud->header = pcl_cloud_to_process.header;
+        // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
+        pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
+        pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl_output_cloud->header = pcl_cloud_to_process.header;
 
-            // Save current input cloud header for later usage
-            current_header = input_point_cloud->header;
+        // Save current input cloud header for later usage
+        current_header = input_point_cloud->header;
 
-            // Clear array of translational points and its marker array
-            trans_fronts_points.clear();
-            trans_fronts_normal_marker_array.reset(new visualization_msgs::MarkerArray);
+        // Clear array of translational points and its marker array
+        trans_fronts_points.clear();
+        trans_fronts_normal_marker_array.reset(new visualization_msgs::MarkerArray);
 
-            // Clear array of rotational fronts joints and its marker array
-            joint_real_coordinates.clear();
-            rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
+        // Clear array of rotational fronts joints and its marker array
+        joint_real_coordinates.clear();
+        rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
 
-            // Clear vector of separated front clouds
-            fronts_point_clouds.clear();
+        // Clear vector of separated front clouds
+        fronts_point_clouds.clear();
 
-            // Set flags for waiting until all predictions on current point cloud will be processed
-            ModelBuilder::setWaitForPredictionsFlags(true);
-        }
-        else
-        {
-            std::cout << "Waiting for all predictions on previous point cloud!" << std::endl;
-        }
+        // Set flags for waiting until all predictions on current point cloud will be processed
+        ModelBuilder::setWaitForPredictionsFlags(true);
     }
 
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
