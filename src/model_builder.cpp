@@ -60,16 +60,6 @@ namespace model_builder{
             // Clear vector of separated front clouds
             fronts_point_clouds.clear();
 
-            // Get RGB image from PointCloud and publish it so other nodes can generate predictions
-            sensor_msgs::Image rgb_image;
-            pcl::toROSMsg(pcl_cloud_to_process, rgb_image);
-            image_from_pcl_pub.publish(rgb_image);
-
-            // Publish current processed point cloud
-            sensor_msgs::PointCloud2 currently_processed_point_cloud;
-            currently_processed_point_cloud = *input_point_cloud;
-            cur_processing_point_cloud_pub.publish(currently_processed_point_cloud);
-
             // Set flags for waiting until all predictions on current point cloud will be processed
             ModelBuilder::setWaitForPredictionsFlags(true);
         }
