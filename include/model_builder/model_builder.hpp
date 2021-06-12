@@ -26,9 +26,13 @@ class ModelBuilder
 
 private:
     /**
-     * @brief post_processed_point_cloud_pub - publisher for post processed point cloud
+     * @brief post_processed_fronts_point_cloud_pub - publisher for post processed fronts point cloud
      */
-    ros::Publisher post_processed_point_cloud_pub;
+    ros::Publisher post_processed_fronts_point_cloud_pub;
+    /**
+     * @brief post_processed_handlers_point_cloud_pub - publisher for post processed handler point cloud
+     */
+    ros::Publisher post_processed_handlers_point_cloud_pub;
     /**
      * @brief last_processed_point_cloud_pub - last processed point cloud
      */
@@ -46,9 +50,13 @@ private:
      */
     pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_to_process;
     /**
-     * @brief pcl_output_cloud - post processed output cloud
+     * @brief pcl_output_cloud - post processed output cloud with fronts
      */
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_output_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_fronts_output_cloud;
+    /**
+     * @brief pcl_handlers_output_cloud - post processed output cloud with handlers
+     */
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_handlers_output_cloud;
     /**
      * @brief current_header - header of the currently processed point cloud
      */

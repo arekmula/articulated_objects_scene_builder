@@ -84,7 +84,7 @@ int main(int argc, char **argv)
                                                   1,
                                                   &Synchronizer::pointCloudCallback,
                                                   &synchronizer);
-    ros::Subscriber post_processed_point_cloud_sub = n.subscribe("/processed_point_cloud",
+    ros::Subscriber post_processed_point_cloud_sub = n.subscribe("/processed_fronts_point_cloud",
                                                                  1,
                                                                  &Synchronizer::processedPointCloudCallback,
                                                                  &synchronizer);

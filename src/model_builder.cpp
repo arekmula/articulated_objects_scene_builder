@@ -11,8 +11,12 @@ namespace model_builder{
     ModelBuilder::ModelBuilder(ros::NodeHandle &node_handle)
     {
 
-        // Create a ROS publisher for the post processed point cloud
-        post_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
+        // Create a ROS publisher for the post processed fronts point cloud
+        post_processed_fronts_point_cloud_pub =
+                node_handle.advertise<sensor_msgs::PointCloud2>("processed_fronts_point_cloud", 1000);
+        // Create a ROS publisher for the post processed handlers point cloud
+        post_processed_handlers_point_cloud_pub =
+                node_handle.advertise<sensor_msgs::PointCloud2>("processed_handlers_point_cloud", 1000);
 
         // Create a ROS publisher for the last processed point cloud
         last_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("last_processed_point_cloud", 1000);
@@ -37,8 +41,10 @@ namespace model_builder{
 
         // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
         pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-        pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-        pcl_output_cloud->header = pcl_cloud_to_process.header;
+        pcl_fronts_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl_fronts_output_cloud->header = pcl_cloud_to_process.header;
+        pcl_handlers_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl_handlers_output_cloud->header = pcl_cloud_to_process.header;
 
         // Save current input cloud header for later usage
         current_header = input_point_cloud->header;
@@ -68,7 +74,7 @@ namespace model_builder{
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_cloud_to_process);
-        front_prediction.processPrediction(pcl_output_cloud, true, trans_fronts_points, true, fronts_point_clouds);
+        front_prediction.processPrediction(pcl_fronts_output_cloud, true, trans_fronts_points, true, fronts_point_clouds);
         is_waiting_for_front_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -91,7 +97,7 @@ namespace model_builder{
                                              pcl_cloud_to_process);
 
         std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> blank_cloud;
-        handler_prediction.processPrediction(pcl_output_cloud, false, trans_fronts_points, false, blank_cloud);
+        handler_prediction.processPrediction(pcl_handlers_output_cloud, false, trans_fronts_points, false, blank_cloud);
         is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -144,9 +150,13 @@ namespace model_builder{
     void ModelBuilder::publishProcessedPointCloud()
     {
         std::cout << "*****************Publishing processed point cloud*******************" << std::endl;
-        sensor_msgs::PointCloud2 post_processed_point_cloud;
-        pcl::toROSMsg(*pcl_output_cloud, post_processed_point_cloud);
-        post_processed_point_cloud_pub.publish(post_processed_point_cloud);
+        sensor_msgs::PointCloud2 post_processed_fronts_point_cloud;
+        pcl::toROSMsg(*pcl_fronts_output_cloud, post_processed_fronts_point_cloud);
+        post_processed_fronts_point_cloud_pub.publish(post_processed_fronts_point_cloud);
+
+        sensor_msgs::PointCloud2 post_processed_handlers_point_cloud;
+        pcl::toROSMsg(*pcl_handlers_output_cloud, post_processed_handlers_point_cloud);
+        post_processed_handlers_point_cloud_pub.publish(post_processed_handlers_point_cloud);
 
         sensor_msgs::PointCloud2 last_processed_point_cloud;
         pcl::toROSMsg(pcl_cloud_to_process, last_processed_point_cloud);
