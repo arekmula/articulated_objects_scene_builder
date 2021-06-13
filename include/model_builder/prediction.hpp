@@ -64,6 +64,14 @@ protected:
                                       int box_width);
 
     /**
+     * @brief getMaskInliersIndices - Gets mask inliers indices from point cloud
+     * @param bounding_box_inliers_indices - point indices with mask inliers
+     * @param mask_data - mask_data
+     */
+    void getMaskInliersIndices(pcl::PointIndices::Ptr bounding_box_inliers_indices,
+                               const std::vector<uint8_t> &mask_data);
+
+    /**
      * @brief extractCloudFromIndices - extract cloud based on  inliers indices
      * @param boundingbox_inliers_indices
      * @param extracted_cloud

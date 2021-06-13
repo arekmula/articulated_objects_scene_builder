@@ -72,6 +72,16 @@ namespace model_builder{
         }
     }
 
+    void Prediction::getMaskInliersIndices(pcl::PointIndices::Ptr bounding_box_inliers_indices,
+                                                  const std::vector<uint8_t> &mask_data)
+    {
+        for (int i=0; i<=mask_data.size(); i++)
+        {
+            if (mask_data[i] > 0)
+                bounding_box_inliers_indices->indices.push_back(i);
+        }
+    }
+
     void Prediction::findPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud, bool should_optimize_coeffficients,
                                pcl::SacModel model_type, const int method_type, float distance_threshold,
                                pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients)
@@ -189,18 +199,15 @@ namespace model_builder{
                                        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds)
     {
         uint8_t prediction_number = 0;
-        for(std::vector<sensor_msgs::RegionOfInterest>::iterator it = boxes.begin(); it != boxes.end(); ++it)
+        for(std::vector<sensor_msgs::Image>::iterator it = masks.begin(); it != masks.end(); ++it)
         {
-            int box_x_offset = it->x_offset;
-            int box_y_offset = it->y_offset;
-            int box_width = it->width;
-            int box_height = it->height;
+            std::vector<uint8_t> mask_data = it->data;
             uint8_t class_id = class_ids[prediction_number];
             Prediction::prediction_color color = getPredictionColor(class_id);
 
             // Get detected bounding box inliers
             pcl::PointIndices::Ptr boundingbox_inliers_indices(new pcl::PointIndices);
-            getBoundingBoxInliersIndices(boundingbox_inliers_indices, box_y_offset, box_height, box_x_offset, box_width);
+            getMaskInliersIndices(boundingbox_inliers_indices, mask_data);
 
             // Construct cloud from detected bounding box inliers
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr bounding_box_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
