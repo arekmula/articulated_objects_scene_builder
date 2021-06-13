@@ -145,6 +145,8 @@ public:
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
 
+    long int seed;
+
 };
 
 class HandlerPrediction

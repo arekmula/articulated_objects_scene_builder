@@ -22,7 +22,8 @@ namespace model_builder{
         scores = in_scores;
         masks = in_masks;
         cloud = in_cloud;
-
+        seed = ros::Time::now().toNSec();
+        srand(seed);
         std::cout << "Number of predictions: " << boxes.size() << std::endl;
     }
 
@@ -259,21 +260,21 @@ namespace model_builder{
     Prediction::prediction_color FrontPrediction::getPredictionColor(uint8_t class_id)
     {
 
-        long int seed = ros::Time::now().toNSec();
-        srand(seed);
         prediction_color colors={0, 0, 0};
         if (class_id == ROT_FRONT)
         {
-            colors.r = int(rand() % 256);
-            colors.g = int(rand() % 52);
-            colors.b = int(rand() % 52);
+            int supplement_color = int(rand() % 128);
+            colors.r = supplement_color;
+            colors.g = 128 - supplement_color;
+            colors.b = 255;
             return colors;
         }
         else if (class_id == TRANS_FRONT)
         {
-            colors.r = int(rand() % 52);
-            colors.g = int(rand() % 256);
-            colors.b = int(rand() % 52);
+            int supplement_color = int(rand() % 128);
+            colors.r = supplement_color;
+            colors.g = 255;
+            colors.b = 128 - supplement_color;
             return colors;
         }
 
@@ -283,14 +284,12 @@ namespace model_builder{
     Prediction::prediction_color HandlerPrediction::getPredictionColor(uint8_t class_id)
     {
 
-        long int seed = ros::Time::now().toNSec();
-        srand(seed);
         Prediction::prediction_color colors={0, 0, 0};
         if (class_id == HANDLER)
         {
-            colors.r = 0;
+            colors.r = 255;
             colors.g = 0;
-            colors.b = 255;
+            colors.b = 0;
             return colors;
         }
 
