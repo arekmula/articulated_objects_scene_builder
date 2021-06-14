@@ -5,8 +5,6 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <algorithm>
 
-
-
 namespace model_builder{
 
     Prediction::Prediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
@@ -199,29 +197,29 @@ namespace model_builder{
                                        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds)
     {
         uint8_t prediction_number = 0;
-        for(std::vector<sensor_msgs::Image>::iterator it = masks.begin(); it != masks.end(); ++it)
+        for(int i=0; i<masks.size(); i++)
         {
-            std::vector<uint8_t> mask_data = it->data;
+            std::vector<uint8_t> mask_data = masks[i].data;
             uint8_t class_id = class_ids[prediction_number];
             Prediction::prediction_color color = getPredictionColor(class_id);
 
-            // Get detected bounding box inliers
-            pcl::PointIndices::Ptr boundingbox_inliers_indices(new pcl::PointIndices);
-            getMaskInliersIndices(boundingbox_inliers_indices, mask_data);
+            // Get detected mask inliers
+            pcl::PointIndices::Ptr mask_inliers_indices(new pcl::PointIndices);
+            getMaskInliersIndices(mask_inliers_indices, mask_data);
 
-            // Construct cloud from detected bounding box inliers
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr bounding_box_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-            extractCloudFromIndices(boundingbox_inliers_indices, bounding_box_extracted_cloud);         
+            // Construct cloud from detected mask inliers
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr mask_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+            extractCloudFromIndices(mask_inliers_indices, mask_extracted_cloud);
 
-            // Find plane in cloud created from bounding box
+            // Find plane in cloud created from mask
             pcl::ModelCoefficients::Ptr plane_coefficients(new pcl::ModelCoefficients);
             pcl::PointIndices::Ptr plane_indices(new pcl::PointIndices);
-            findPlane(bounding_box_extracted_cloud, true, pcl::SACMODEL_PLANE, pcl::SAC_RANSAC,
+            findPlane(mask_extracted_cloud, true, pcl::SACMODEL_PLANE, pcl::SAC_RANSAC,
                       0.05, plane_indices, plane_coefficients);
 
             // Construct cloud from detected plane
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-            extractCloudFromIndices(plane_indices, bounding_box_extracted_cloud, plane_cloud);
+            extractCloudFromIndices(plane_indices, mask_extracted_cloud, plane_cloud);
 
             // Find normal to plane if detected front is translational
             if (should_find_normal && class_id == FrontPrediction::TRANS_FRONT)
@@ -256,10 +254,37 @@ namespace model_builder{
                 }
                 else if (class_id == FrontPrediction::ROT_FRONT)
                 {
-                    fronts_point_clouds.push_back(plane_cloud);
+                    int box_x_offset = boxes[i].x_offset;
+                    int box_y_offset = boxes[i].y_offset;
+                    int box_width = boxes[i].width;
+                    int box_height = boxes[i].height;
+
+                    // For rotational front, find plane cloud of this front based on bounding box. It's needed later
+                    // when the program is finding rotational joint
+
+                    // Get detected bounding box inliers
+                    pcl::PointIndices::Ptr boundingbox_inliers_indices(new pcl::PointIndices);
+                    getBoundingBoxInliersIndices(boundingbox_inliers_indices, box_y_offset,
+                                                 box_height, box_x_offset, box_width);
+
+                    // Construct cloud from detected bounding box inliers
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr
+                            bounding_box_extracted_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+                    extractCloudFromIndices(mask_inliers_indices, bounding_box_extracted_cloud);
+
+                    // Find plane in cloud created from bounding box
+                    pcl::ModelCoefficients::Ptr plane_coefficients(new pcl::ModelCoefficients);
+                    pcl::PointIndices::Ptr plane_indices(new pcl::PointIndices);
+                    findPlane(bounding_box_extracted_cloud, true, pcl::SACMODEL_PLANE, pcl::SAC_RANSAC,
+                              0.05, plane_indices, plane_coefficients);
+
+                    // Construct cloud from detected plane
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud_bbox(new pcl::PointCloud<pcl::PointXYZRGB>);
+                    extractCloudFromIndices(plane_indices, bounding_box_extracted_cloud, plane_cloud_bbox);
+
+                    fronts_point_clouds.push_back(plane_cloud_bbox);
                 }
             }
-
             prediction_number++;
         }
     }

@@ -5,7 +5,6 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
 
-
 namespace model_builder{
 
     ModelBuilder::ModelBuilder(ros::NodeHandle &node_handle)
@@ -38,7 +37,6 @@ namespace model_builder{
     void ModelBuilder::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr &input_point_cloud)
     {
         std::cout << "\nNew point cloud to process!" << std::endl;
-
         // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
         pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
         pcl_fronts_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -67,7 +65,6 @@ namespace model_builder{
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
     {
         std::cout << "Received front prediction!" << std::endl;
-
         FrontPrediction front_prediction(front_detection->boxes,
                                          front_detection->class_ids,
                                          front_detection->class_names,
@@ -88,7 +85,6 @@ namespace model_builder{
     void ModelBuilder::handlerPredictionCallback(const detection_msgs::HandlerPredictionConstPtr &handler_detection)
     {
         std::cout << "Received handler prediction!" << std::endl;
-
         HandlerPrediction handler_prediction(handler_detection->boxes,
                                              handler_detection->class_ids,
                                              handler_detection->class_names,
@@ -111,7 +107,6 @@ namespace model_builder{
     void ModelBuilder::jointPredictionCallback(const detection_msgs::JointPredictionConstPtr &joint_detection)
     {
         std::cout << "Received joint prediction!" << std::endl;
-
         JointPrediction joint_prediction(joint_detection->x1,
                                          joint_detection->y1,
                                          joint_detection->x2,
