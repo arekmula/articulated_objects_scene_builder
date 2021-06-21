@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     model_builder::ModelBuilder modelBuilder(n);
 
     // ROS subscriber for the input point cloud
-    ros::Subscriber point_cloud_sub = n.subscribe("/hz_points",
+    ros::Subscriber point_cloud_sub = n.subscribe("/cloud_to_process",
                                                   1,
                                                   &model_builder::ModelBuilder::pointCloudCallback,
                                                   &modelBuilder);

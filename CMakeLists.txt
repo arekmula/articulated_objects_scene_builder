@@ -12,7 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   pcl_conversions
   pcl_ros
-  detection_msgs
+  sensor_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,6 +55,12 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message1.msg
 #   Message2.msg
 # )
+add_message_files(
+   FILES
+   FrontPrediction.msg
+   HandlerPrediction.msg
+   JointPrediction.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -74,6 +81,12 @@ find_package(catkin REQUIRED COMPONENTS
 #   DEPENDENCIES
 #   std_msgs
 # )
+
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +120,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES model_builder
-   CATKIN_DEPENDS detection_msgs
+   CATKIN_DEPENDS message_runtime std_msgs sensor_msgs
 #  DEPENDS system_lib
 
 )
@@ -150,6 +163,7 @@ ${catkin_LIBRARIES}
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/model_builder_node.cpp)
+add_executable(synchronization_node src/synchronization_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -166,6 +180,9 @@ target_link_libraries(${PROJECT_NAME}_node
   ${PROJECT_NAME}_library
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(synchronization_node
+    ${catkin_LIBRARIES})
 
 #############
 ## Install ##

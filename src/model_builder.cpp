@@ -5,16 +5,17 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
 
-
 namespace model_builder{
 
     ModelBuilder::ModelBuilder(ros::NodeHandle &node_handle)
     {
-        // Create a ROS publisher for the currently processed point cloud
-        cur_processing_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("currently_processed_point_cloud", 1000);
 
-        // Create a ROS publisher for the post processed point cloud
-        post_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("processed_point_cloud", 1000);
+        // Create a ROS publisher for the post processed fronts point cloud
+        post_processed_fronts_point_cloud_pub =
+                node_handle.advertise<sensor_msgs::PointCloud2>("processed_fronts_point_cloud", 1000);
+        // Create a ROS publisher for the post processed handlers point cloud
+        post_processed_handlers_point_cloud_pub =
+                node_handle.advertise<sensor_msgs::PointCloud2>("processed_handlers_point_cloud", 1000);
 
         // Create a ROS publisher for the last processed point cloud
         last_processed_point_cloud_pub = node_handle.advertise<sensor_msgs::PointCloud2>("last_processed_point_cloud", 1000);
@@ -25,8 +26,6 @@ namespace model_builder{
         // Create a ROS publisher for the marker array of rotational fronts joints
         rot_fronts_joints_pub = node_handle.advertise<visualization_msgs::MarkerArray>("rot_fronts_joints", 1000);
 
-        // Create a ROS publisher for the image generated from point cloud
-        image_from_pcl_pub = node_handle.advertise<sensor_msgs::Image>("image_to_process", 1000);
         std::cout << "Started Model builder" << std::endl;
     }
 
@@ -37,59 +36,42 @@ namespace model_builder{
 
     void ModelBuilder::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr &input_point_cloud)
     {
-        if (ModelBuilder::isAllPredictionsReady())
-        {
-            std::cout << "\nNew point cloud to process!" << std::endl;
+        std::cout << "\nNew point cloud to process!" << std::endl;
+        // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
+        pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
+        pcl_fronts_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl_fronts_output_cloud->header = pcl_cloud_to_process.header;
+        pcl_handlers_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl_handlers_output_cloud->header = pcl_cloud_to_process.header;
 
-            // Convert the sensor_msgs/PointCloud2 data to pcl/PointCloud
-            pcl::fromROSMsg(*input_point_cloud, pcl_cloud_to_process);
-            pcl_output_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-            pcl_output_cloud->header = pcl_cloud_to_process.header;
+        // Save current input cloud header for later usage
+        current_header = input_point_cloud->header;
 
-            // Save current input cloud header for later usage
-            current_header = input_point_cloud->header;
+        // Clear array of translational points and its marker array
+        trans_fronts_points.clear();
+        trans_fronts_normal_marker_array.reset(new visualization_msgs::MarkerArray);
 
-            // Clear array of translational points and its marker array
-            trans_fronts_points.clear();
-            trans_fronts_normal_marker_array.reset(new visualization_msgs::MarkerArray);
+        // Clear array of rotational fronts joints and its marker array
+        joint_real_coordinates.clear();
+        rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
 
-            // Clear array of rotational fronts joints and its marker array
-            joint_real_coordinates.clear();
-            rot_fronts_joints_marker_array.reset(new visualization_msgs::MarkerArray);
+        // Clear vector of separated front clouds
+        fronts_point_clouds.clear();
 
-            // Clear vector of separated front clouds
-            fronts_point_clouds.clear();
-
-            // Get RGB image from PointCloud and publish it so other nodes can generate predictions
-            sensor_msgs::Image rgb_image;
-            pcl::toROSMsg(pcl_cloud_to_process, rgb_image);
-            image_from_pcl_pub.publish(rgb_image);
-
-            // Publish current processed point cloud
-            sensor_msgs::PointCloud2 currently_processed_point_cloud;
-            currently_processed_point_cloud = *input_point_cloud;
-            cur_processing_point_cloud_pub.publish(currently_processed_point_cloud);
-
-            // Set flags for waiting until all predictions on current point cloud will be processed
-            ModelBuilder::setWaitForPredictionsFlags(true);
-        }
-        else
-        {
-            std::cout << "Waiting for all predictions on previous point cloud!" << std::endl;
-        }
+        // Set flags for waiting until all predictions on current point cloud will be processed
+        ModelBuilder::setWaitForPredictionsFlags(true);
     }
 
     void ModelBuilder::frontPredictionCallback(const detection_msgs::FrontPredictionConstPtr &front_detection)
     {
         std::cout << "Received front prediction!" << std::endl;
-
         FrontPrediction front_prediction(front_detection->boxes,
                                          front_detection->class_ids,
                                          front_detection->class_names,
                                          front_detection->scores,
                                          front_detection->masks,
                                          pcl_cloud_to_process);
-        front_prediction.processPrediction(pcl_output_cloud, true, trans_fronts_points, true, fronts_point_clouds);
+        front_prediction.processPrediction(pcl_fronts_output_cloud, true, trans_fronts_points, true, fronts_point_clouds);
         is_waiting_for_front_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -103,7 +85,6 @@ namespace model_builder{
     void ModelBuilder::handlerPredictionCallback(const detection_msgs::HandlerPredictionConstPtr &handler_detection)
     {
         std::cout << "Received handler prediction!" << std::endl;
-
         HandlerPrediction handler_prediction(handler_detection->boxes,
                                              handler_detection->class_ids,
                                              handler_detection->class_names,
@@ -112,7 +93,7 @@ namespace model_builder{
                                              pcl_cloud_to_process);
 
         std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> blank_cloud;
-        handler_prediction.processPrediction(pcl_output_cloud, false, trans_fronts_points, false, blank_cloud);
+        handler_prediction.processPrediction(pcl_handlers_output_cloud, false, trans_fronts_points, false, blank_cloud);
         is_waiting_for_handler_prediction = false;
 
         if (ModelBuilder::isAllPredictionsReady())
@@ -126,7 +107,6 @@ namespace model_builder{
     void ModelBuilder::jointPredictionCallback(const detection_msgs::JointPredictionConstPtr &joint_detection)
     {
         std::cout << "Received joint prediction!" << std::endl;
-
         JointPrediction joint_prediction(joint_detection->x1,
                                          joint_detection->y1,
                                          joint_detection->x2,
@@ -165,9 +145,13 @@ namespace model_builder{
     void ModelBuilder::publishProcessedPointCloud()
     {
         std::cout << "*****************Publishing processed point cloud*******************" << std::endl;
-        sensor_msgs::PointCloud2 post_processed_point_cloud;
-        pcl::toROSMsg(*pcl_output_cloud, post_processed_point_cloud);
-        post_processed_point_cloud_pub.publish(post_processed_point_cloud);
+        sensor_msgs::PointCloud2 post_processed_fronts_point_cloud;
+        pcl::toROSMsg(*pcl_fronts_output_cloud, post_processed_fronts_point_cloud);
+        post_processed_fronts_point_cloud_pub.publish(post_processed_fronts_point_cloud);
+
+        sensor_msgs::PointCloud2 post_processed_handlers_point_cloud;
+        pcl::toROSMsg(*pcl_handlers_output_cloud, post_processed_handlers_point_cloud);
+        post_processed_handlers_point_cloud_pub.publish(post_processed_handlers_point_cloud);
 
         sensor_msgs::PointCloud2 last_processed_point_cloud;
         pcl::toROSMsg(pcl_cloud_to_process, last_processed_point_cloud);

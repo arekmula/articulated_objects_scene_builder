@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <node pkg="model_builder" type="model_builder_node" name="model_builder_node" output="screen"/>
+    <node pkg="model_builder" type="synchronization_node" name="synchronization_node" output="screen"/>
+    
+    <arg name="rvizconfig" default="$(find model_builder)/rviz/rviz.rviz" /> 
+    <node pkg="rviz" name="rviz" type="rviz" output="screen" args="-d $(arg rvizconfig)"/> 
+
+</launch>
