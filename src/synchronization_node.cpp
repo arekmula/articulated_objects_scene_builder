@@ -79,8 +79,9 @@ int main(int argc, char **argv)
 
     Synchronizer synchronizer(n);
 
-
-    ros::Subscriber point_cloud_sub = n.subscribe("/hz_points",
+    std::string input_point_cloud_topic_name;
+    n.param<std::string>("input_point_cloud_topic", input_point_cloud_topic_name, "/input_point_cloud");
+    ros::Subscriber point_cloud_sub = n.subscribe(input_point_cloud_topic_name,
                                                   1,
                                                   &Synchronizer::pointCloudCallback,
                                                   &synchronizer);

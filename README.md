@@ -2,7 +2,7 @@
 
 ## About
 ROS node that builds point cloud-based model of the scene enhanced with information about articulated objects. It subscribes to following topics:
-- `hz_points` which contains input point cloud to process
+- topic with point cloud to process that can be set using `rosparam set rosparam set input_point_cloud_topic "input_point_cloud_topic"`
 - `front_prediction` which contains information about detected fronts of articulated objects. [See node](https://github.com/arekmula/ros_front_detection_segmentation)
 - `handler_prediction_topic` which contains information about detected handlers of articulated objects. [See node](https://github.com/arekmula/ros_handler_detector)
 - `joint_prediction_topic` which contains information about detected joints of articulated objects that are rotational. [See node](https://github.com/arekmula/ros_joint_segmentation)
@@ -18,5 +18,6 @@ The node publish following topics:
 
 ## Run with
 ```
-rosrun model_builder model_builder_node
+rosparam set rosparam set input_point_cloud_topic "input_point_cloud_topic"
+roslaunch model_builder model_builder.launch 
 ```
