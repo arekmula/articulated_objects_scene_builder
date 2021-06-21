@@ -13,11 +13,20 @@
 
 namespace model_builder {
 
-struct joint_prediction_vertices{
+struct rot_joint_prediction_image_vertices{
     int32_t x1;
     int32_t y1;
     int32_t x2;
     int32_t y2;
+    int32_t A;
+    int32_t B;
+    int32_t C;
+    int32_t front_index;
+};
+
+struct rot_joint_coordinates{
+    pcl::PointXYZRGB top_point;
+    pcl::PointXYZRGB bottom_point;
 };
 
 class Prediction
@@ -55,6 +64,14 @@ protected:
                                       int box_width);
 
     /**
+     * @brief getMaskInliersIndices - Gets mask inliers indices from point cloud
+     * @param bounding_box_inliers_indices - point indices with mask inliers
+     * @param mask_data - mask_data
+     */
+    void getMaskInliersIndices(pcl::PointIndices::Ptr bounding_box_inliers_indices,
+                               const std::vector<uint8_t> &mask_data);
+
+    /**
      * @brief extractCloudFromIndices - extract cloud based on  inliers indices
      * @param boundingbox_inliers_indices
      * @param extracted_cloud
@@ -85,6 +102,26 @@ protected:
                    pcl::SacModel model_type, const int method_type, float distance_threshold,
                    pcl::PointIndices::Ptr plane_inliers, pcl::ModelCoefficients::Ptr plane_coefficients);
 
+    /**
+     * @brief findNormalToPlane - finds normals in input cloud
+     * @param input_cloud - input cloud
+     * @param cloud_normals - output cloud with normals
+     * @param radius - radius
+     * @param threads_number - number of threads used to compute normals
+     * @param resize_factor - input cloud resize factor
+     */
+    void findNormalToPlane(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                           pcl::PointXYZRGBNormal *normal_line_points,
+                           double radius, int threads_number=4, int resize_factor=16);
+
+    /**
+     * @brief computeAverageNormalVector - computes average normal vector based on input normals
+     * @param cloud_normals - cloud containing input normals
+     * @param normal - output normals
+     */
+    void computeAverageNormalVector(pcl::PointCloud<pcl::Normal>::Ptr cloud_normals,
+                                    float (&normal)[3]);
+
     struct prediction_color{
         int r;
         int g;
@@ -110,9 +147,13 @@ public:
     /**
      * @brief processPrediction - processing prediction on point cloud
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
+    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud, bool should_find_normal,
+                           std::vector<pcl::PointXYZRGBNormal> &trans_normals_points, bool save_separate_clouds,
+                           std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fronts_point_clouds);
 
     virtual prediction_color getPredictionColor(uint8_t class_id);
+
+    long int seed;
 
 };
 
@@ -155,13 +196,6 @@ public:
 class FrontPrediction
         : public Prediction{
 
-private:
-    enum class_ids_names{
-        BG=0,
-        ROT_FRONT=1,
-        TRANS_FRONT=2
-    };
-
 public:
     FrontPrediction(std::vector<sensor_msgs::RegionOfInterest> in_boxes,
                     std::vector<int32_t> in_class_ids,
@@ -185,12 +219,18 @@ public:
      */
     prediction_color getPredictionColor(uint8_t class_id);
 
+    enum class_ids_names{
+        BG=0,
+        ROT_FRONT=1,
+        TRANS_FRONT=2
+    };
+
 };
 
 class JointPrediction{
 
 private:
-    std::vector<joint_prediction_vertices> predictions;
+    std::vector<rot_joint_prediction_image_vertices> predictions;
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
 
     /**
@@ -199,7 +239,20 @@ private:
      * @param y - y image coordinate
      * @return point containing real coordinates
      */
-    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y);
+    pcl::PointXYZRGB findRealCoordinatesFromImageCoordinates(int x, int y, int A, int B, int C);
+
+    /**
+     * @brief findClosestPointInCurrentCloud - finds closest point to the input point that exists in the input_cloud
+     * @param input_cloud - cloud in which look for
+     * @param input_point - point which needs to be found
+     * @param output_point_indice - indice of input_cloud that stores closest point
+     * @param K - number of points to be found
+     * @return true if point found
+     */
+    bool findClosestPointInCurrentCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
+                                        pcl::PointXYZRGB input_point,
+                                        int *output_point_indice,
+                                        int K=1);
 
 public:
 
@@ -207,15 +260,21 @@ public:
                     std::vector<int32_t> in_y1,
                     std::vector<int32_t> in_x2,
                     std::vector<int32_t> in_y2,
+                    std::vector<int32_t> in_front_index,
+                    std::vector<int32_t> A,
+                    std::vector<int32_t> B,
+                    std::vector<int32_t> C,
                     pcl::PointCloud<pcl::PointXYZRGB> in_cloud);
 
     ~JointPrediction();
 
     /**
-     * @brief processPrediction - process joint prediction
-     * @param output_cloud
+     * @brief processPrediction - process rotational joint prediction
+     * @param front_separeted_clouds - vector of front clouds
+     * @param real_coordinates - output top and bottom coordinate of predicted rotational joint
      */
-    void processPrediction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud);
+    void processPrediction(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> front_separeted_clouds,
+                           std::vector<rot_joint_coordinates> &real_coordinates);
 };
 
 }
