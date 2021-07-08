@@ -9,7 +9,20 @@
   <img alt="2" src="imgs/object3.gif" width="30%">
 </p>
 
-The goal of the project is to build a ROS system that would be able to build a point-cloud-based model of the scene enhanced with information about articulated objects based on a **single** RGB-D image. The articulated objects defined by this work are drawers and cabinets.
+The goal of the project is to build a ROS system that would be able to build a point-cloud-based model of the scene enhanced with information about articulated objects based on a **single** RGB-D image. The articulated objects defined by this work are **drawers, wardrobes, and cabinets.**
+
+### The information about articulated objects contains:
+- a location of the object and a class of the object
+- a handler of the object to interact it
+- a rotational joint or transitional joint estimation
+
+### Features:
+- estimation of object parameters without the need to interact with the object - improved time of the estimation, reduces the risk of damaging the object 
+- estimation of many objects at the same time
+- localizing the objects in the scene
+- the object might be in a random state during estimation
+
+This project estimates the parameters of those objects without the need to interact with the object. This improves the time of the estimation and reduces the risk of damaging the object during estimation, comparing to the classic methods of estimation.
 
 This module is part of my master thesis "Point cloud-based model of the scene enhanced with information about articulated objects"
 
@@ -21,13 +34,13 @@ This node concatenates results and runs on top of the previous three nodes that 
 
 to build a final model of the scene in a 3D environment.
 
-The node subsribes to the following topics:
+### The node subsribes to the following topics:
 - topic with Microsoft Kinect point cloud, that can be set using `rosparam set input_point_cloud_topic "input_point_cloud_topic"`
 - `front_prediction` which contains information about detected fronts of articulated objects. 
 - `handler_prediction_topic` which contains information about detected handlers of articulated objects. 
 -  `joint_prediction_topic` which contains information about detected joints of articulated objects that are rotational. 
 
-The node publish following topics:
+### The node publish following topics:
 - `image_to_process` - RGB image obtained from input point cloud, which has to be processed by the rest of the nodes
 - `cloud_to_process` - currently processed point cloud
 - `processed_fronts_point_cloud` - Processed point cloud with fronts data
